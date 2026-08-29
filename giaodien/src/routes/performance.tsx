@@ -100,11 +100,11 @@ function PerformancePage() {
       }
     },
     onSuccess: () => {
-      toast.success("Đã chạy benchmark.");
+      toast.success("Đã hoàn tất đo hiệu năng.");
       void qc.invalidateQueries({ queryKey: ["bench-history"] });
       setTimeout(() => setProgress(0), 800);
     },
-    onError: () => toast.error("Benchmark thất bại. Vui lòng thử lại."),
+    onError: () => toast.error("Đo hiệu năng thất bại. Vui lòng thử lại."),
   });
 
   const rows = (history.data ?? []).filter((b) => b.operation === operation);
@@ -129,7 +129,7 @@ function PerformancePage() {
         actions={
           <Button onClick={() => run.mutate()} disabled={run.isPending} className="gap-1.5">
             <Play className="h-4 w-4" aria-hidden />
-            {run.isPending ? "Đang chạy…" : "Chạy benchmark"}
+            {run.isPending ? "Đang đo…" : "Bắt đầu đo"}
           </Button>
         }
       />
@@ -139,7 +139,7 @@ function PerformancePage() {
         <p className="text-sm">Dữ liệu mô phỏng, chỉ dùng thử.</p>
       </div>
 
-      <section className="surface-card p-4" aria-label="Thiết lập benchmark">
+      <section className="surface-card p-4" aria-label="Thiết lập đo hiệu năng">
         <div className="grid gap-4 lg:grid-cols-4">
           <div className="space-y-1.5">
             <Label htmlFor="bench-op">Phép đo</Label>
@@ -151,10 +151,10 @@ function PerformancePage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="hash_lookup">Hash lookup vs Linear scan</SelectItem>
-                <SelectItem value="heap_extract">Heap extract vs Scan max</SelectItem>
-                <SelectItem value="trie_prefix">Trie prefix search vs String scan</SelectItem>
-                <SelectItem value="initial_load">Merge sort + initial loading</SelectItem>
+                <SelectItem value="hash_lookup">Tra cứu bảng băm và duyệt tuyến tính</SelectItem>
+                <SelectItem value="heap_extract">Lấy từ hàng đợi ưu tiên và tìm cực đại</SelectItem>
+                <SelectItem value="trie_prefix">Tìm tiền tố bằng cây và duyệt chuỗi</SelectItem>
+                <SelectItem value="initial_load">Sắp xếp trộn và nạp ban đầu</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -190,7 +190,7 @@ function PerformancePage() {
             <Label>Tuỳ chọn</Label>
             <label className="flex items-center gap-2 pt-2 text-sm">
               <Checkbox checked={warmup} onCheckedChange={(v) => setWarmup(Boolean(v))} />
-              Chạy warm-up trước khi đo
+              Khởi động thử trước khi đo
             </label>
           </div>
         </div>
@@ -229,11 +229,11 @@ function PerformancePage() {
                 hint: `Tại ${formatNumber(focus?.size ?? 0)} bản ghi`,
               },
               {
-                label: "Thời gian linear baseline",
+                label: "Thời gian duyệt tuyến tính đối chứng",
                 value: `${focus?.linear.toFixed(4) ?? "—"} ms`,
-                hint: "Quét tuyến tính cùng input",
+                hint: "Duyệt tuyến tính cùng dữ liệu vào",
               },
-              { label: "Nhanh hơn", value: `${speedup.toFixed(1)}x`, hint: "So với baseline" },
+              { label: "Nhanh hơn", value: `${speedup.toFixed(1)}x`, hint: "So với phương án đối chứng" },
               {
                 label: "Xu hướng khi tăng 10 lần dữ liệu",
                 value: smallest && largest ? `${(largest.dsa / smallest.dsa).toFixed(2)}x` : "—",
@@ -253,7 +253,7 @@ function PerformancePage() {
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                 <h2 className="truncate text-base font-semibold">{operationLabel[operation]}</h2>
                 <Button variant="outline" size="sm" onClick={() => setLogScale((v) => !v)}>
-                  Thang {logScale ? "Log" : "Linear"}
+                  Thang {logScale ? "lôgarit" : "tuyến tính"}
                 </Button>
               </div>
               <div className="mt-4 h-[300px]">
@@ -290,7 +290,7 @@ function PerformancePage() {
                       dot
                     />
                     <Line
-                      name="Linear scan (baseline)"
+                      name="Duyệt tuyến tính (đối chứng)"
                       type="monotone"
                       dataKey="linear"
                       stroke="var(--color-destructive)"
@@ -316,7 +316,7 @@ function PerformancePage() {
                       DSA (ms)
                     </th>
                     <th scope="col" className="py-1 text-right">
-                      Baseline (ms)
+                      Đối chứng (ms)
                     </th>
                   </tr>
                 </thead>
@@ -380,7 +380,7 @@ function PerformancePage() {
                       radius={[6, 6, 0, 0]}
                     />
                     <Bar
-                      name="Linear scan"
+                      name="Duyệt tuyến tính"
                       dataKey="linear"
                       fill="var(--color-chart-5)"
                       radius={[6, 6, 0, 0]}
@@ -398,9 +398,9 @@ function PerformancePage() {
                 <AccordionContent>
                   <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
                     <li>Dữ liệu lấy từ chương trình.</li>
-                    <li>Có warm-up và lặp nhiều lần.</li>
-                    <li>Hai cách dùng cùng input.</li>
-                    <li>Storage không thay thế core DSA.</li>
+                    <li>Có bước khởi động thử và lặp nhiều lần.</li>
+                    <li>Hai cách dùng cùng dữ liệu đầu vào.</li>
+                    <li>Tầng lưu trữ không thay thế tầng lõi DSA.</li>
                   </ul>
                 </AccordionContent>
               </AccordionItem>
@@ -409,7 +409,7 @@ function PerformancePage() {
 
           <section className="surface-card overflow-hidden">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border p-4">
-              <h2 className="truncate text-base font-semibold">Lịch sử benchmark</h2>
+              <h2 className="truncate text-base font-semibold">Lịch sử đo hiệu năng</h2>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -417,7 +417,7 @@ function PerformancePage() {
                   className="gap-1.5"
                   onClick={async () => {
                     await benchmarkApi.export("csv");
-                    toast.success("Đã xuất lịch sử benchmark ra CSV.");
+                    toast.success("Đã xuất lịch sử đo hiệu năng ra CSV.");
                   }}
                 >
                   <Download className="h-4 w-4" aria-hidden />
@@ -429,7 +429,7 @@ function PerformancePage() {
                   className="gap-1.5"
                   onClick={async () => {
                     await benchmarkApi.export("json");
-                    toast.success("Đã xuất lịch sử benchmark ra JSON.");
+                    toast.success("Đã xuất lịch sử đo hiệu năng ra JSON.");
                   }}
                 >
                   <Download className="h-4 w-4" aria-hidden />
@@ -437,18 +437,59 @@ function PerformancePage() {
                 </Button>
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <Table>
+            <ol className="divide-y divide-border md:hidden">
+              {(history.data ?? []).slice(0, 16).map((b, i) => (
+                <li
+                  key={`${b.operation}-${b.datasetSize}-${b.measuredAt}-${i}`}
+                  className="space-y-3 px-4 py-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-muted-foreground tnum">
+                      {formatDateTime(b.measuredAt)}
+                    </span>
+                    <Badge variant="outline" className="border-warning/40 text-warning-foreground">
+                      {b.mode === "mock" ? "Mô phỏng" : "Thực tế"}
+                    </Badge>
+                  </div>
+                  <p className="text-sm font-medium leading-snug">{operationLabel[b.operation]}</p>
+                  <dl className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <dt className="text-muted-foreground">Tập dữ liệu</dt>
+                      <dd className="mt-0.5 font-medium tnum">{formatNumber(b.datasetSize)}</dd>
+                    </div>
+                    <div className="text-right">
+                      <dt className="text-muted-foreground">Số lần lặp</dt>
+                      <dd className="mt-0.5 font-medium tnum">{formatNumber(b.iterations)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">TB DSA / đối chứng</dt>
+                      <dd className="mt-0.5 font-medium tnum">
+                        {b.dsaMeanMs} / {b.baselineMeanMs} ms
+                      </dd>
+                    </div>
+                    <div className="text-right">
+                      <dt className="text-muted-foreground">Mức tăng tốc</dt>
+                      <dd className="mt-0.5 font-semibold text-primary tnum">
+                        {(b.baselineMeanMs / b.dsaMeanMs).toFixed(1)}x
+                      </dd>
+                    </div>
+                  </dl>
+                </li>
+              ))}
+            </ol>
+
+            <div className="hidden overflow-x-auto md:block">
+              <Table className="min-w-[920px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Thời gian chạy</TableHead>
                     <TableHead>Phép đo</TableHead>
-                    <TableHead className="text-right">Dataset</TableHead>
-                    <TableHead className="text-right">Iterations</TableHead>
-                    <TableHead className="text-right">DSA mean</TableHead>
-                    <TableHead className="text-right">Baseline mean</TableHead>
-                    <TableHead className="text-right">Speedup</TableHead>
-                    <TableHead>Mode</TableHead>
+                    <TableHead className="text-right">Tập dữ liệu</TableHead>
+                    <TableHead className="text-right">Số lần lặp</TableHead>
+                    <TableHead className="text-right">TB DSA</TableHead>
+                    <TableHead className="text-right">TB đối chứng</TableHead>
+                    <TableHead className="text-right">Mức tăng tốc</TableHead>
+                    <TableHead>Chế độ</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -474,7 +515,7 @@ function PerformancePage() {
                           variant="outline"
                           className="border-warning/40 text-warning-foreground"
                         >
-                          {b.mode}
+                          {b.mode === "mock" ? "Mô phỏng" : "Thực tế"}
                         </Badge>
                       </TableCell>
                     </TableRow>

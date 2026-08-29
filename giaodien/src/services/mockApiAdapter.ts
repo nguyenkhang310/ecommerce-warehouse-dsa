@@ -1,4 +1,5 @@
 import { getCore } from "@/core/coreService";
+import { operationLabel } from "@/lib/format";
 import type { BenchmarkPoint, Order, Priority, Product, StockMovement } from "@/core/types";
 
 /**
@@ -63,7 +64,7 @@ export const inventoryApi = {
       core.productsByKey.set(product.sku, product);
       core.skuTrie.insert(product.sku, { sku: product.sku, name: product.name });
       core.nameTrie.insertAllWords(product.name, { sku: product.sku, name: product.name });
-      core.pushLog("success", "hash_table", `Thêm sản phẩm ${product.sku} vào Hash Table.`);
+      core.pushLog("success", "hash_table", `Thêm sản phẩm ${product.sku} vào bảng băm.`);
       return product;
     }),
   updateStock: (
@@ -137,7 +138,7 @@ export const benchmarkApi = {
         core.pushLog(
           "info",
           "benchmark",
-          `Chạy benchmark ${payload.operation} • ${payload.iterations} vòng lặp (mô phỏng).`,
+          `Đo hiệu năng ${operationLabel[payload.operation]} • ${payload.iterations} vòng lặp (mô phỏng).`,
         );
         return points;
       },
@@ -180,7 +181,11 @@ export const systemApi = {
       () => {
         const core = getCore();
         const total = entityType === "products" ? 240 : 320;
-        core.pushLog("success", "storage", `Nạp ${file.name} (${entityType}) vào core structures.`);
+        core.pushLog(
+          "success",
+          "storage",
+          `Nạp ${file.name} (${entityType === "products" ? "sản phẩm" : "đơn hàng"}) vào cấu trúc lõi.`,
+        );
         return { success: total - 6, skipped: 4, duplicates: 2, errors: 0, total };
       },
       800,

@@ -8,32 +8,32 @@ export interface DemoStep {
 
 export const DEMO_STEPS: DemoStep[] = [
   {
-    title: "Tra cứu Hash Table",
+    title: "Tra cứu bảng băm",
     route: "/products",
     description: "Nhập SKU để tra cứu O(1).",
   },
   {
-    title: "Gợi ý Trie",
+    title: "Gợi ý bằng cây tiền tố",
     route: "/products",
     description: "Gõ tiền tố để tìm O(k + m).",
   },
   {
-    title: "Cập nhật kho & Recent list",
+    title: "Cập nhật kho và danh sách gần đây",
     route: "/visualizer",
-    description: "Cập nhật kho và xem move-to-front.",
+    description: "Cập nhật kho và xem thao tác chuyển lên đầu.",
   },
   {
-    title: "Thêm đơn vào Heap",
+    title: "Thêm đơn vào hàng đợi ưu tiên",
     route: "/orders",
-    description: "Chèn đơn và heapify O(log n).",
+    description: "Chèn đơn và vun lại cây trong O(log n).",
   },
   {
     title: "Xử lý đơn tiếp theo",
     route: "/orders",
-    description: "Extract đơn ưu tiên nhất.",
+    description: "Lấy đơn ưu tiên nhất khỏi hàng đợi.",
   },
   {
-    title: "Xem benchmark",
+    title: "Xem kết quả đo hiệu năng",
     route: "/performance",
     description: "So sánh DSA với quét tuyến tính.",
   },

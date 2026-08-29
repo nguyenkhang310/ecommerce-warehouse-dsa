@@ -1,7 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Download, PackagePlus, PackageSearch, Search, Upload, Warehouse } from "lucide-react";
+import {
+  Download,
+  MoreHorizontal,
+  PackagePlus,
+  PackageSearch,
+  Search,
+  Upload,
+  Warehouse,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +67,7 @@ export const Route = createFileRoute("/products")({
       { title: "Sản phẩm — Quản lý kho" },
       {
         name: "description",
-        content: "Tra cứu sản phẩm bằng Hash Table và Trie.",
+        content: "Tra cứu sản phẩm bằng bảng băm và cây tiền tố.",
       },
       { property: "og:title", content: "Sản phẩm — Quản lý kho" },
       {
@@ -126,8 +134,8 @@ function SmartSearch({ onSelect }: { onSelect: (sku: string) => void }) {
   const error = isExact ? exactQuery.isError : prefixQuery.isError;
 
   const footer = isExact
-    ? `Tra cứu bằng Hash Table • trung bình O(1)${exactQuery.data ? ` • bucket #${exactQuery.data.trace.bucketIndex} • ${formatMs(exactQuery.data.trace.elapsedMs)}` : ""}`
-    : `Kết quả từ Trie • O(k + m)${prefixQuery.data ? ` • ${prefixQuery.data.matches} kết quả • ${formatMs(prefixQuery.data.elapsedMs)}` : ""}`;
+    ? `Tra cứu bằng bảng băm • trung bình O(1)${exactQuery.data ? ` • ngăn #${exactQuery.data.trace.bucketIndex} • ${formatMs(exactQuery.data.trace.elapsedMs)}` : ""}`
+    : `Kết quả từ cây tiền tố • O(k + m)${prefixQuery.data ? ` • ${prefixQuery.data.matches} kết quả • ${formatMs(prefixQuery.data.elapsedMs)}` : ""}`;
 
   return (
     <section className="surface-card p-4 sm:p-5" aria-label="Tìm kiếm thông minh">
@@ -254,12 +262,12 @@ function SmartSearch({ onSelect }: { onSelect: (sku: string) => void }) {
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <ComplexityChip>Hash Table • Avg O(1)</ComplexityChip>
-        <ComplexityChip tone="cyan">Trie • O(k + m)</ComplexityChip>
+        <ComplexityChip>Bảng băm • Trung bình O(1)</ComplexityChip>
+        <ComplexityChip tone="cyan">Cây tiền tố • O(k + m)</ComplexityChip>
         <WhyPopover
-          structure={isExact ? "Hash Table" : "Trie"}
-          comparisonKey={isExact ? "hash(sku) → bucket" : "prefix path → subtree"}
-          complexity={isExact ? "Avg O(1)" : "O(k + m)"}
+          structure={isExact ? "Bảng băm" : "Cây tiền tố"}
+          comparisonKey={isExact ? "băm(SKU) → ngăn" : "đường dẫn tiền tố → cây con"}
+          complexity={isExact ? "Trung bình O(1)" : "O(k + m)"}
           explanation="Kết quả được trả từ tầng lõi DSA."
         />
       </div>
@@ -420,7 +428,7 @@ function CreateProductDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Thêm sản phẩm</DialogTitle>
-          <DialogDescription>Chèn vào Hash Table và Trie.</DialogDescription>
+          <DialogDescription>Chèn vào bảng băm và cây tiền tố.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
@@ -509,14 +517,14 @@ function ProductsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Danh mục sản phẩm"
-        description="Tra cứu bằng Hash Table và Trie."
+        description="Tra cứu bằng bảng băm và cây tiền tố."
         actions={
           <>
             <Button onClick={() => setCreateOpen(true)} className="gap-1.5">
               <PackagePlus className="h-4 w-4" aria-hidden />
               Thêm sản phẩm
             </Button>
-            <Button variant="outline" asChild className="gap-1.5">
+            <Button variant="outline" asChild className="hidden gap-1.5 sm:inline-flex">
               <Link to="/system">
                 <Upload className="h-4 w-4" aria-hidden />
                 Nhập dữ liệu
@@ -524,13 +532,36 @@ function ProductsPage() {
             </Button>
             <Button
               variant="outline"
-              className="gap-1.5"
+              className="hidden gap-1.5 sm:inline-flex"
               onClick={() => setStockTarget(rows[0] ?? null)}
               disabled={rows.length === 0}
             >
               <Warehouse className="h-4 w-4" aria-hidden />
               Cập nhật tồn kho
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-1.5 sm:hidden">
+                  <MoreHorizontal className="h-4 w-4" aria-hidden />
+                  Thao tác khác
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link to="/system">
+                    <Upload className="h-4 w-4" aria-hidden />
+                    Nhập dữ liệu
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={rows.length === 0}
+                  onSelect={() => setStockTarget(rows[0] ?? null)}
+                >
+                  <Warehouse className="h-4 w-4" aria-hidden />
+                  Cập nhật tồn kho
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         }
       />
@@ -547,7 +578,7 @@ function ProductsPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-[190px]" aria-label="Lọc theo danh mục">
+              <SelectTrigger className="w-full sm:w-[190px]" aria-label="Lọc theo danh mục">
                 <SelectValue placeholder="Danh mục" />
               </SelectTrigger>
               <SelectContent>
@@ -566,7 +597,7 @@ function ProductsPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-[170px]" aria-label="Lọc theo trạng thái">
+              <SelectTrigger className="w-full sm:w-[170px]" aria-label="Lọc theo trạng thái">
                 <SelectValue placeholder="Trạng thái" />
               </SelectTrigger>
               <SelectContent>
@@ -758,7 +789,7 @@ function ProductsPage() {
             </div>
             <p className="border-t border-border px-4 py-2 text-xs text-muted-foreground">
               Sắp xếp/lọc ở bảng chỉ thay đổi cách trình bày trên tập dữ liệu do tầng lõi trả về,
-              không thay thế thuật toán core.
+              không thay thế thuật toán của tầng lõi.
             </p>
           </>
         )}
@@ -801,10 +832,10 @@ function ProductsPage() {
                 </div>
 
                 <div className="rounded-lg border border-primary/25 bg-primary/5 p-3">
-                  <p className="text-sm font-semibold">DSA lookup</p>
+                  <p className="text-sm font-semibold">Tra cứu bằng DSA</p>
                   <dl className="mt-2 space-y-1 text-xs">
                     <div className="flex justify-between">
-                      <dt className="text-muted-foreground">Hash bucket</dt>
+                      <dt className="text-muted-foreground">Ngăn băm</dt>
                       <dd className="font-mono tnum">
                         #{(detail.data.product.sku.length * 7) % 64}
                       </dd>
@@ -815,7 +846,7 @@ function ProductsPage() {
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">Độ phức tạp</dt>
-                      <dd className="font-mono">Avg O(1)</dd>
+                      <dd className="font-mono">Trung bình O(1)</dd>
                     </div>
                   </dl>
                 </div>

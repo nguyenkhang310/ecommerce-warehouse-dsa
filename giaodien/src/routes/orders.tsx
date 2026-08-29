@@ -42,13 +42,23 @@ import { inventoryApi, orderApi } from "@/services/mockApiAdapter";
 import { formatDateTime, waitingTime } from "@/lib/format";
 import type { Priority } from "@/core/types";
 
+const sourceLabel = (source: string) =>
+  ({
+    hash_table: "Bảng băm",
+    priority_heap: "Hàng đợi ưu tiên",
+    recent_list: "Danh sách gần đây",
+    benchmark: "Đo hiệu năng",
+    storage: "Lưu trữ",
+    core: "Tầng lõi",
+  })[source] ?? source;
+
 export const Route = createFileRoute("/orders")({
   head: () => ({
     meta: [
       { title: "Hàng đợi đơn — Quản lý kho" },
       {
         name: "description",
-        content: "Xử lý đơn bằng Priority Heap.",
+        content: "Xử lý đơn bằng hàng đợi ưu tiên.",
       },
       { property: "og:title", content: "Hàng đợi đơn — Quản lý kho" },
       {
@@ -115,7 +125,7 @@ function CreateOrderDialog({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Thêm đơn vào hàng đợi</DialogTitle>
-          <DialogDescription>Chèn vào Priority Heap với O(log n).</DialogDescription>
+          <DialogDescription>Chèn vào hàng đợi ưu tiên với O(log n).</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -145,7 +155,7 @@ function CreateOrderDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="oitem">Thêm sản phẩm (gợi ý theo tiền tố • Trie)</Label>
+            <Label htmlFor="oitem">Thêm sản phẩm (gợi ý bằng cây tiền tố)</Label>
             <Input
               id="oitem"
               value={term}
@@ -233,7 +243,7 @@ function CreateOrderDialog({
             Huỷ
           </Button>
           <Button onClick={submit} disabled={mutation.isPending}>
-            {mutation.isPending ? "Đang chèn…" : "Chèn vào Heap"}
+            {mutation.isPending ? "Đang thêm…" : "Thêm vào hàng đợi"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -303,16 +313,16 @@ function OrdersPage() {
       <NextOrderCard detailed />
 
       <Tabs defaultValue="list" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-3 sm:inline-flex sm:w-auto">
           <TabsTrigger value="list">Danh sách vận hành</TabsTrigger>
-          <TabsTrigger value="tree">Cây Heap</TabsTrigger>
+          <TabsTrigger value="tree">Cây hàng đợi</TabsTrigger>
           <TabsTrigger value="log">Nhật ký thao tác</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
             <Select value={filter} onValueChange={(v) => setFilter(v as Priority | "all")}>
-              <SelectTrigger className="w-[190px]" aria-label="Lọc theo mức ưu tiên">
+              <SelectTrigger className="w-full sm:w-[190px]" aria-label="Lọc theo mức ưu tiên">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -324,7 +334,7 @@ function OrdersPage() {
             </Select>
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Info className="h-3.5 w-3.5" aria-hidden />
-              Bộ lọc chỉ thay đổi cách hiển thị, không thay đổi thứ tự xử lý của Heap.
+              Bộ lọc chỉ thay đổi cách hiển thị, không thay đổi thứ tự xử lý của hàng đợi.
             </p>
           </div>
 
@@ -340,14 +350,46 @@ function OrdersPage() {
               action={<Button onClick={() => setCreateOpen(true)}>Thêm đơn mới</Button>}
             />
           ) : (
-            <div className="surface-card overflow-x-auto">
-              <Table>
+            <>
+              <ol className="surface-card divide-y divide-border md:hidden">
+                {(queue.data ?? []).map((o, i) => (
+                  <li
+                    key={o.orderCode}
+                    className={`space-y-3 px-4 py-3 ${highlight === o.orderCode ? "bg-primary/10" : ""}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-mono text-sm font-semibold tnum">{o.orderCode}</p>
+                        <p className="mt-1 text-xs text-muted-foreground tnum">
+                          Vị trí {i + 1} · Thứ tự #{o.sequenceNumber}
+                        </p>
+                      </div>
+                      <PriorityBadge priority={o.priority} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <p className="text-muted-foreground">Thời gian chờ</p>
+                        <p className="mt-0.5 font-medium tnum">{waitingTime(o.createdAt)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-muted-foreground">Mặt hàng / Số lượng</p>
+                        <p className="mt-0.5 font-medium tnum">
+                          {o.items.length} / {o.totalQuantity}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+
+              <div className="surface-card hidden overflow-x-auto md:block">
+                <Table className="min-w-[900px]">
                 <TableHeader className="sticky top-0 bg-card">
                   <TableRow>
                     <TableHead className="w-12">Vị trí</TableHead>
                     <TableHead>Mã đơn</TableHead>
                     <TableHead>Ưu tiên</TableHead>
-                    <TableHead className="text-right">Sequence</TableHead>
+                    <TableHead className="text-right">Số thứ tự</TableHead>
                     <TableHead>Tạo lúc</TableHead>
                     <TableHead>Thời gian chờ</TableHead>
                     <TableHead className="text-right">Mặt hàng / SL</TableHead>
@@ -381,8 +423,9 @@ function OrdersPage() {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
-            </div>
+                </Table>
+              </div>
+            </>
           )}
         </TabsContent>
 
@@ -395,7 +438,7 @@ function OrdersPage() {
             <div className="surface-card p-4">
               <HeapTree nodes={heap.data!.nodes.slice(0, 15)} highlight={highlight} />
               <p className="mt-3 text-xs text-muted-foreground">
-                Hiển thị tối đa 15 node đầu của Heap ({heap.data!.size} node). Root là đơn sẽ được
+                Hiển thị tối đa 15 nút đầu của hàng đợi ({heap.data!.size} nút). Nút gốc là đơn sẽ được
                 xử lý tiếp theo.
               </p>
             </div>
@@ -423,7 +466,7 @@ function OrdersPage() {
                             : ""
                     }
                   >
-                    {e.source}
+                    {sourceLabel(e.source)}
                   </Badge>
                   <div className="min-w-0">
                     <p className="text-sm">{e.message}</p>

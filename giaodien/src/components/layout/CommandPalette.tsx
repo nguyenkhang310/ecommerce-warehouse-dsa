@@ -88,7 +88,7 @@ export function CommandPalette({
         {prefix.data && prefix.data.entries.length > 0 ? (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Sản phẩm gợi ý • Trie prefix O(k + m)">
+            <CommandGroup heading="Sản phẩm gợi ý • Cây tiền tố O(k + m)">
               {prefix.data.entries.map((p) => (
                 <CommandItem key={p.sku} value={p.sku} onSelect={() => go("/products")}>
                   <PackageSearch className="h-4 w-4" aria-hidden />
@@ -106,12 +106,12 @@ export function CommandPalette({
         {exact.data?.order ? (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Đơn hàng chính xác • Hash lookup Avg O(1)">
+            <CommandGroup heading="Đơn hàng chính xác • Tra cứu bảng băm trung bình O(1)">
               <CommandItem value={exact.data.order.orderCode} onSelect={() => go("/orders")}>
                 <ListOrdered className="h-4 w-4" aria-hidden />
                 <span className="font-mono text-xs">{exact.data.order.orderCode}</span>
                 <span className="ml-auto text-xs text-muted-foreground">
-                  seq #{exact.data.order.sequenceNumber}
+                  thứ tự #{exact.data.order.sequenceNumber}
                 </span>
               </CommandItem>
             </CommandGroup>
@@ -130,11 +130,11 @@ export function CommandPalette({
           </CommandItem>
           <CommandItem value="benchmark" onSelect={() => go("/performance")}>
             <ChartNoAxesCombined className="h-4 w-4" aria-hidden />
-            Chạy benchmark
+            Đo hiệu năng
           </CommandItem>
           <CommandItem value="heap-visualizer" onSelect={() => go("/visualizer")}>
             <PlayCircle className="h-4 w-4" aria-hidden />
-            Mở Heap visualizer
+            Mở mô phỏng hàng đợi ưu tiên
           </CommandItem>
         </CommandGroup>
       </CommandList>

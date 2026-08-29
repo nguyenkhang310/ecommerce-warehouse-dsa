@@ -100,7 +100,11 @@ class CoreService {
       });
     }
     this.lastLoadAt = new Date().toISOString();
-    this.pushLog("info", "core", "Đã nạp dữ liệu vào Hash Table, Heap, Trie và Recent list.");
+    this.pushLog(
+      "info",
+      "core",
+      "Đã nạp dữ liệu vào bảng băm, hàng đợi ưu tiên, cây tiền tố và danh sách gần đây.",
+    );
   }
 
   pushLog(level: OperationLogEntry["level"], source: string, message: string) {
@@ -132,7 +136,7 @@ class CoreService {
     this.pushLog(
       res.value ? "success" : "warning",
       "hash_table",
-      `Tra cứu sản phẩm "${sku}" • bucket #${res.bucketIndex}`,
+      `Tra cứu sản phẩm "${sku}" • ngăn #${res.bucketIndex}`,
     );
     return {
       product: res.value,
@@ -142,7 +146,7 @@ class CoreService {
         bucketIndex: res.bucketIndex,
         comparisons: res.comparisons,
         elapsedMs,
-        complexity: "Avg O(1)",
+        complexity: "Trung bình O(1)",
         found: Boolean(res.value),
       },
     };
@@ -203,7 +207,7 @@ class CoreService {
     this.pushLog(
       "success",
       "recent_list",
-      `Cập nhật tồn kho ${sku} (${delta > 0 ? "+" : ""}${delta}) • move-to-front O(1)`,
+      `Cập nhật tồn kho ${sku} (${delta > 0 ? "+" : ""}${delta}) • chuyển lên đầu O(1)`,
     );
     return {
       product: updated,
@@ -240,7 +244,11 @@ class CoreService {
       processedAt: new Date().toISOString(),
     };
     this.ordersByCode.set(processed.orderCode, processed);
-    this.pushLog("success", "priority_heap", `Extract ${processed.orderCode} • heapify O(log n)`);
+    this.pushLog(
+      "success",
+      "priority_heap",
+      `Lấy ${processed.orderCode} • vun lại hàng đợi O(log n)`,
+    );
     return processed;
   }
 
@@ -256,7 +264,7 @@ class CoreService {
         bucketIndex: res.bucketIndex,
         comparisons: res.comparisons,
         elapsedMs,
-        complexity: "Avg O(1)",
+        complexity: "Trung bình O(1)",
         found: Boolean(res.value),
       },
     };
@@ -300,7 +308,7 @@ class CoreService {
     this.pushLog(
       "success",
       "priority_heap",
-      `Chèn ${order.orderCode} với sequence #${order.sequenceNumber} • O(log n)`,
+      `Chèn ${order.orderCode} với số thứ tự #${order.sequenceNumber} • O(log n)`,
     );
     return order;
   }
@@ -446,7 +454,7 @@ class CoreService {
       coreApiUrl: "http://localhost:8000/api/v1 (chưa kết nối)",
       connected: false,
       mode: "mock",
-      storageType: "CSV / JSON in-memory (mock)",
+      storageType: "CSV / JSON trong bộ nhớ (mô phỏng)",
       lastLoadAt: this.lastLoadAt,
       productCount: this.productsByKey.size,
       orderCount: this.ordersByCode.size,

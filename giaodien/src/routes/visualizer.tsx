@@ -51,10 +51,10 @@ function Legend() {
   return (
     <ul className="flex flex-wrap gap-3 text-xs text-muted-foreground">
       {[
-        ["bg-card border-border", "Node thường"],
-        ["bg-primary/15 border-primary", "Node hiện tại"],
-        ["bg-accent/20 border-accent", "Node đang so sánh"],
-        ["bg-success/15 border-success", "Node kết thúc từ / kết quả"],
+        ["bg-card border-border", "Nút thông thường"],
+        ["bg-primary/15 border-primary", "Nút hiện tại"],
+        ["bg-accent/20 border-accent", "Nút đang so sánh"],
+        ["bg-success/15 border-success", "Nút kết thúc từ / kết quả"],
       ].map(([cls, label]) => (
         <li key={label} className="flex items-center gap-1.5">
           <span className={`inline-block h-3 w-3 rounded border ${cls}`} aria-hidden />
@@ -146,9 +146,9 @@ function HashTab() {
 
   const steps = [
     `Chuẩn hóa khóa đầu vào "${input.toUpperCase()}"`,
-    "Tính hash bằng djb2",
-    "Lấy bucket index = hash % capacity",
-    "Duyệt chain trong bucket để so khớp khóa",
+    "Tính giá trị băm bằng djb2",
+    "Lấy chỉ số ngăn = giá trị băm % dung lượng",
+    "Duyệt chuỗi trong ngăn để so khớp khóa",
     "Trả về bản ghi tương ứng",
   ];
 
@@ -163,7 +163,7 @@ function HashTab() {
   return (
     <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_300px]">
       <div className="surface-card space-y-3 p-4">
-        <Label htmlFor="hash-input">productCode hoặc orderId</Label>
+        <Label htmlFor="hash-input">Mã sản phẩm hoặc mã đơn</Label>
         <Input
           id="hash-input"
           value={input}
@@ -231,18 +231,18 @@ function HashTab() {
         </div>
         <Pseudocode
           lines={[
-            "index = hash(key) % capacity",
-            "chain = buckets[index]",
-            "for entry in chain:",
-            "  if entry.key == key: return entry",
-            "return null",
+            "chỉ_số = băm(khóa) % dung_lượng",
+            "chuỗi = các_ngăn[chỉ_số]",
+            "với mỗi phần_tử trong chuỗi:",
+            "  nếu phần_tử.khóa == khóa: trả về phần_tử",
+            "trả về rỗng",
           ]}
           active={Math.min(step, 4)}
         />
         <DefenseExplain
           problem="Tra cứu theo mã (MC1)."
           why="Truy cập trực tiếp theo khóa."
-          complexity="Average O(1), worst O(n) khi collision dồn về một bucket, space O(n)."
+          complexity="Trung bình O(1), tệ nhất O(n) khi xung đột dồn về một ngăn, bộ nhớ O(n)."
         />
       </div>
 
@@ -286,15 +286,15 @@ function HashTab() {
       </div>
 
       <div className="surface-card space-y-3 p-4">
-        <h3 className="text-sm font-semibold">Operation inspector</h3>
+        <h3 className="text-sm font-semibold">Chi tiết thao tác</h3>
         {lookup.isPending ? (
           <LoadingBlock rows={4} />
         ) : trace ? (
           <dl className="space-y-2 text-sm">
             {[
-              ["Input", trace.input],
-              ["Hash value", String(trace.hashValue)],
-              ["Bucket index", `#${trace.bucketIndex}`],
+              ["Dữ liệu vào", trace.input],
+              ["Giá trị băm", String(trace.hashValue)],
+              ["Chỉ số ngăn", `#${trace.bucketIndex}`],
               ["Số phép so sánh", String(trace.comparisons)],
               ["Thời gian", formatMs(trace.elapsedMs)],
               ["Kết quả", trace.found ? "Tìm thấy" : "Không tồn tại"],
@@ -307,9 +307,9 @@ function HashTab() {
           </dl>
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <ComplexityChip>Average O(1)</ComplexityChip>
-          <ComplexityChip tone="amber">Worst O(n)</ComplexityChip>
-          <ComplexityChip tone="cyan">Space O(n)</ComplexityChip>
+          <ComplexityChip>Trung bình O(1)</ComplexityChip>
+          <ComplexityChip tone="amber">Tệ nhất O(n)</ComplexityChip>
+          <ComplexityChip tone="cyan">Bộ nhớ O(n)</ComplexityChip>
         </div>
         <p className="rounded-lg bg-muted p-2 text-xs text-muted-foreground">
           Bước {step + 1}/{steps.length}: {steps[step]}
@@ -334,7 +334,7 @@ function HeapTab() {
         items: [{ sku: "KEY-LOGI-K380", quantity: 2 }],
       }),
     onSuccess: (o) => {
-      setNote(`Đã chèn ${o.orderCode} và sift-up. O(log n).`);
+      setNote(`Đã chèn ${o.orderCode} và vun lên. O(log n).`);
       void qc.invalidateQueries();
     },
   });
@@ -342,7 +342,7 @@ function HeapTab() {
   const extract = useMutation({
     mutationFn: () => orderApi.extractNext(),
     onSuccess: (o) => {
-      if (o) setNote(`Đã extract ${o.orderCode} và sift-down. O(log n).`);
+      if (o) setNote(`Đã lấy ${o.orderCode} và vun xuống. O(log n).`);
       void qc.invalidateQueries();
     },
   });
@@ -365,15 +365,15 @@ function HeapTab() {
             variant="outline"
             onClick={() => {
               const root = heap.data?.nodes[0];
-              toast.info(root ? `Peek: ${root.orderCode}` : "Heap trống", {
-                description: "Xem nhưng không loại khỏi Heap.",
+              toast.info(root ? `Đỉnh hàng đợi: ${root.orderCode}` : "Hàng đợi trống", {
+                description: "Xem nhưng không loại khỏi hàng đợi.",
               });
             }}
           >
-            Peek
+            Xem đỉnh
           </Button>
           <Button variant="outline" onClick={() => extract.mutate()} disabled={extract.isPending}>
-            Extract
+            Lấy khỏi hàng đợi
           </Button>
         </div>
         {note ? (
@@ -387,37 +387,39 @@ function HeapTab() {
       </div>
 
       <div className="surface-card space-y-3 p-4">
-        <h3 className="text-sm font-semibold">Comparator</h3>
+        <h3 className="text-sm font-semibold">Quy tắc so sánh</h3>
         <ol className="list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
-          <li>Priority lớn hơn được ưu tiên.</li>
-          <li>Cùng mức: sequence nhỏ hơn trước.</li>
+          <li>Độ ưu tiên lớn hơn được xử lý trước.</li>
+          <li>Cùng mức: số thứ tự nhỏ hơn được xử lý trước.</li>
         </ol>
         <div className="rounded-lg border border-border p-3 text-sm">
           <p className="text-xs font-semibold text-muted-foreground uppercase">
-            Ví dụ FIFO cùng mức Gấp
+            Ví dụ đến trước xử lý trước cùng mức Gấp
           </p>
-          <p className="mt-1 font-mono text-xs tnum">ORD-2026-08341 • p3 • seq 3281 → thắng</p>
+          <p className="mt-1 font-mono text-xs tnum">
+            ORD-2026-08341 • ưu tiên 3 • thứ tự 3281 → được chọn
+          </p>
           <p className="font-mono text-xs text-muted-foreground tnum">
-            ORD-2026-08342 • p3 • seq 3282
+            ORD-2026-08342 • ưu tiên 3 • thứ tự 3282
           </p>
         </div>
         <Pseudocode
           lines={[
-            "if a.priority != b.priority:",
-            "  return b.priority - a.priority",
-            "return a.sequence - b.sequence",
+            "nếu a.ưu_tiên != b.ưu_tiên:",
+            "  trả về b.ưu_tiên - a.ưu_tiên",
+            "trả về a.thứ_tự - b.thứ_tự",
           ]}
           active={0}
         />
         <div className="flex flex-wrap gap-2">
-          <ComplexityChip tone="emerald">Peek O(1)</ComplexityChip>
-          <ComplexityChip>Insert O(log n)</ComplexityChip>
-          <ComplexityChip>Extract O(log n)</ComplexityChip>
+          <ComplexityChip tone="emerald">Xem đỉnh O(1)</ComplexityChip>
+          <ComplexityChip>Chèn O(log n)</ComplexityChip>
+          <ComplexityChip>Lấy ra O(log n)</ComplexityChip>
         </div>
         <DefenseExplain
-          problem="Lấy đơn ưu tiên và giữ FIFO."
-          why="Root là đơn ưu tiên nhất; cập nhật O(log n)."
-          complexity="Peek O(1), Insert O(log n), Extract O(log n)."
+          problem="Lấy đơn ưu tiên và giữ nguyên thứ tự đến trước."
+          why="Nút gốc là đơn ưu tiên nhất; cập nhật O(log n)."
+          complexity="Xem đỉnh O(1), chèn O(log n), lấy ra O(log n)."
         />
       </div>
     </div>
@@ -483,7 +485,7 @@ function TrieTab() {
               .map((depth) => (
                 <div key={depth} className="mb-3 flex flex-wrap items-center gap-2">
                   <span className="w-16 shrink-0 font-mono text-[11px] text-muted-foreground">
-                    depth {depth}
+                    độ sâu {depth}
                   </span>
                   {byDepth.get(depth)!.map((n) => (
                     <span
@@ -491,7 +493,7 @@ function TrieTab() {
                       className={`grid h-9 w-9 place-items-center rounded-lg border font-mono text-sm ${
                         n.onPath ? "border-accent bg-accent/20" : "border-border bg-card"
                       } ${n.isWord ? "ring-2 ring-success/60" : ""}`}
-                      title={n.isWord ? "Node kết thúc từ" : undefined}
+                      title={n.isWord ? "Nút kết thúc từ" : undefined}
                     >
                       {n.char}
                     </span>
@@ -527,7 +529,7 @@ function TrieTab() {
         )}
         <dl className="space-y-1 text-xs">
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Prefix length (k)</dt>
+            <dt className="text-muted-foreground">Độ dài tiền tố (k)</dt>
             <dd className="font-mono tnum">{snapshot.data?.prefixLength ?? 0}</dd>
           </div>
           <div className="flex justify-between">
@@ -567,8 +569,8 @@ function RecentTab() {
     onSuccess: (res) => {
       setNote(
         res.movedToFront
-          ? `${sku}: move-to-front O(1).`
-          : `${sku}: thêm vào HEAD${res.evicted ? `, loại ${res.evicted}` : ""}.`,
+          ? `${sku}: chuyển lên đầu O(1).`
+          : `${sku}: thêm vào đầu${res.evicted ? `, loại ${res.evicted}` : ""}.`,
       );
       void qc.invalidateQueries();
     },
@@ -588,7 +590,7 @@ function RecentTab() {
             <div className="grid-lab overflow-x-auto rounded-xl border border-border p-4">
               <div className="flex min-w-max items-center gap-2">
                 <Badge variant="outline" className="shrink-0">
-                  HEAD
+                  ĐẦU
                 </Badge>
                 {items.map((it, i) => (
                   <div key={it.sku} className="flex items-center gap-2">
@@ -612,14 +614,14 @@ function RecentTab() {
                   </div>
                 ))}
                 <Badge variant="outline" className="shrink-0">
-                  TAIL
+                  CUỐI
                 </Badge>
               </div>
             </div>
 
             <div className="mt-4 rounded-xl border border-border p-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase">
-                Hash Map: SKU → vị trí node
+                Bảng băm: SKU → vị trí nút
               </p>
               <ul className="mt-2 flex flex-wrap gap-2">
                 {(snapshot.data?.map ?? []).map((m) => (
@@ -664,14 +666,14 @@ function RecentTab() {
           </p>
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <ComplexityChip tone="emerald">lookup O(1)</ComplexityChip>
-          <ComplexityChip tone="emerald">move-to-front O(1)</ComplexityChip>
-          <ComplexityChip tone="emerald">remove tail O(1)</ComplexityChip>
+          <ComplexityChip tone="emerald">tra cứu O(1)</ComplexityChip>
+          <ComplexityChip tone="emerald">chuyển lên đầu O(1)</ComplexityChip>
+          <ComplexityChip tone="emerald">xóa cuối O(1)</ComplexityChip>
         </div>
         <DefenseExplain
           problem="Xem sản phẩm vừa cập nhật (TP3)."
-          why="Đổi thứ tự và tìm node trong O(1)."
-          complexity="lookup O(1), move-to-front O(1), remove tail O(1)."
+          why="Đổi thứ tự và tìm nút trong O(1)."
+          complexity="Tra cứu O(1), chuyển lên đầu O(1), xóa cuối O(1)."
         />
       </div>
     </div>
@@ -707,17 +709,17 @@ function VisualizerPage() {
             ) : (
               <Play className="h-4 w-4" aria-hidden />
             )}
-            {auto ? "Dừng demo tự động" : "Chạy demo tự động"}
+            {auto ? "Dừng trình diễn tự động" : "Chạy trình diễn tự động"}
           </Button>
         }
       />
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="hash">Hash Table</TabsTrigger>
-          <TabsTrigger value="heap">Priority Heap</TabsTrigger>
-          <TabsTrigger value="trie">Trie</TabsTrigger>
-          <TabsTrigger value="recent">Recent Updates</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 sm:inline-flex sm:w-auto sm:flex-nowrap">
+          <TabsTrigger value="hash">Bảng băm</TabsTrigger>
+          <TabsTrigger value="heap">Hàng đợi ưu tiên</TabsTrigger>
+          <TabsTrigger value="trie">Cây tiền tố</TabsTrigger>
+          <TabsTrigger value="recent">Cập nhật gần đây</TabsTrigger>
         </TabsList>
         <TabsContent value="hash">
           <HashTab />

@@ -66,31 +66,31 @@ const PREVIEW_ROWS = [
 
 const MODULES = [
   {
-    name: "Hash Table",
+    name: "Bảng băm",
     tag: "MC1",
     duty: "Tra cứu theo SKU và mã đơn.",
-    ops: "get(key), set(key, value), delete(key)",
-    complexity: "Avg O(1)",
+    ops: "lấy(khóa), đặt(khóa, giá trị), xóa(khóa)",
+    complexity: "Trung bình O(1)",
   },
   {
-    name: "Priority Heap + tie-break sequence",
+    name: "Hàng đợi ưu tiên + phân xử bằng số thứ tự",
     tag: "MC2 + TP1",
-    duty: "Lấy đơn ưu tiên; cùng mức xử lý FIFO.",
-    ops: "peek(), insert(order), extract()",
+    duty: "Lấy đơn ưu tiên; cùng mức thì đơn đến trước được xử lý trước.",
+    ops: "xemĐỉnh(), chèn(đơn), lấyRa()",
     complexity: "O(log n)",
   },
   {
-    name: "Trie",
+    name: "Cây tiền tố",
     tag: "TP2",
     duty: "Gợi ý theo tiền tố.",
-    ops: "insert(word), search(prefix)",
+    ops: "chèn(từ), tìm(tiền tố)",
     complexity: "O(k + m)",
   },
   {
-    name: "Doubly Linked List + Hash Map",
+    name: "Danh sách liên kết đôi + Bảng băm",
     tag: "TP3",
     duty: "Theo dõi cập nhật gần đây.",
-    ops: "push(key), moveToFront(node), removeTail()",
+    ops: "thêm(khóa), chuyểnLênĐầu(nút), xóaCuối()",
     complexity: "O(1)",
   },
 ];
@@ -144,21 +144,24 @@ function DataTab() {
         >
           <Upload className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden />
           <p className="mt-2 text-sm font-medium">Kéo thả tệp vào đây</p>
-          <p className="text-xs text-muted-foreground">Hỗ trợ .csv và .json, tối đa 20MB</p>
+          <p className="text-xs text-muted-foreground">Hỗ trợ .csv và .json, tối đa 20 MB</p>
           <div className="mt-3">
-            <Label htmlFor="file-input" className="sr-only">
-              Chọn tệp dữ liệu
-            </Label>
             <Input
               id="file-input"
               type="file"
               accept=".csv,.json"
-              className="mx-auto max-w-xs"
+              className="sr-only"
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) setFile({ name: f.name, size: f.size });
               }}
             />
+            <Label
+              htmlFor="file-input"
+              className="glass-control inline-flex h-10 cursor-pointer items-center justify-center px-4 text-sm font-medium text-foreground hover:bg-white/80"
+            >
+              Chọn tệp dữ liệu
+            </Label>
           </div>
         </div>
 
@@ -186,13 +189,29 @@ function DataTab() {
         {file ? (
           <p className="mt-2 text-xs">
             <Badge variant="outline" className="border-success/40 text-success">
-              Validation: hợp lệ
+              Xác thực: hợp lệ
             </Badge>
           </p>
         ) : null}
 
-        <div className="mt-4 overflow-x-auto rounded-xl border border-border">
-          <Table>
+        <ul className="mt-4 divide-y divide-border rounded-xl border border-border md:hidden">
+          {PREVIEW_ROWS.map((r) => (
+            <li key={r[0]} className="space-y-2 px-3 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{r[1]}</p>
+                <p className="mt-0.5 font-mono text-xs text-muted-foreground">{r[0]}</p>
+              </div>
+              <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 text-xs">
+                <span className="truncate text-muted-foreground">{r[2]}</span>
+                <span className="tnum">Tồn {r[3]}</span>
+                <span className="tnum">Ngưỡng {r[4]}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-4 hidden overflow-x-auto rounded-xl border border-border md:block">
+          <Table className="min-w-[620px]">
             <TableHeader>
               <TableRow>
                 <TableHead>SKU</TableHead>
@@ -237,7 +256,7 @@ function DataTab() {
 
         <div className="mt-4 flex flex-wrap gap-2">
           <Button onClick={() => importer.mutate()} disabled={!file || importer.isPending}>
-            {importer.isPending ? "Đang nạp…" : "Nạp vào core structures"}
+            {importer.isPending ? "Đang nạp…" : "Nạp vào cấu trúc lõi"}
           </Button>
           <Button
             variant="outline"
@@ -254,11 +273,11 @@ function DataTab() {
       </section>
 
       <section className="surface-card p-5">
-        <h2 className="text-base font-semibold">Nguyên tắc Storage Layer</h2>
+        <h2 className="text-base font-semibold">Nguyên tắc tầng lưu trữ</h2>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
           <li>CSV/JSON/SQLite chỉ nạp và lưu dữ liệu.</li>
-          <li>Database không thay thế Heap, Trie hay Hash Table.</li>
-          <li>Dữ liệu được đưa vào bộ nhớ core service.</li>
+          <li>Cơ sở dữ liệu không thay thế hàng đợi ưu tiên, cây tiền tố hay bảng băm.</li>
+          <li>Dữ liệu được đưa vào bộ nhớ của dịch vụ lõi.</li>
         </ul>
         <p className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground">
           <GraduationCap className="h-3.5 w-3.5" aria-hidden />
@@ -311,14 +330,14 @@ function ArchitectureTab() {
         <h2 className="text-base font-semibold">Kiến trúc 3 tầng</h2>
         <div className="mt-4 space-y-3">
           <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-            <p className="text-sm font-semibold">React Presentation</p>
+            <p className="text-sm font-semibold">Tầng giao diện React</p>
             <p className="text-xs text-muted-foreground">Chỉ nhận thao tác và hiển thị dữ liệu.</p>
           </div>
           <div className="flex justify-center text-muted-foreground" aria-hidden>
             <ArrowRight className="h-5 w-5 rotate-90" />
           </div>
           <div className="rounded-xl border border-accent/40 bg-accent/8 p-4">
-            <p className="text-sm font-semibold">Core DSA Service</p>
+            <p className="text-sm font-semibold">Dịch vụ lõi DSA</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {MODULES.map((m) => (
                 <button
@@ -340,7 +359,7 @@ function ArchitectureTab() {
             <ArrowRight className="h-5 w-5 rotate-90" />
           </div>
           <div className="rounded-xl border border-border bg-muted/50 p-4">
-            <p className="text-sm font-semibold">CSV / JSON / SQLite Storage</p>
+            <p className="text-sm font-semibold">Tầng lưu trữ CSV / JSON / SQLite</p>
             <p className="text-xs text-muted-foreground">Chỉ nạp và lưu dữ liệu.</p>
           </div>
         </div>
@@ -360,7 +379,7 @@ function ArchitectureTab() {
             <dd className="mt-0.5">{current.duty}</dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground uppercase">Operation</dt>
+            <dt className="text-xs text-muted-foreground uppercase">Phép toán</dt>
             <dd className="mt-0.5 font-mono text-xs">{current.ops}</dd>
           </div>
           <div>
@@ -392,7 +411,7 @@ function StatusTab() {
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <section className="surface-card p-5">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-          <h2 className="truncate text-base font-semibold">Trạng thái core service</h2>
+          <h2 className="truncate text-base font-semibold">Trạng thái dịch vụ lõi</h2>
           <Button
             variant="outline"
             size="sm"
@@ -406,16 +425,16 @@ function StatusTab() {
         </div>
         <dl className="mt-4 space-y-2 text-sm">
           {[
-            ["Core API URL", h.coreApiUrl],
-            ["Chế độ", h.mode === "mock" ? "Demo data (mock adapter)" : "Live API"],
-            ["Storage type", h.storageType],
+            ["Địa chỉ API lõi", h.coreApiUrl],
+            ["Chế độ", h.mode === "mock" ? "Dữ liệu minh họa" : "API thực tế"],
+            ["Kiểu lưu trữ", h.storageType],
             ["Nạp dữ liệu lần cuối", formatDateTime(h.lastLoadAt)],
             ["Số sản phẩm", formatNumber(h.productCount)],
             ["Số đơn hàng", formatNumber(h.orderCount)],
-            ["Heap size", formatNumber(h.heapSize)],
-            ["Trie terms", formatNumber(h.trieTerms)],
-            ["Recent list capacity", String(h.recentCapacity)],
-            ["API latency", `${h.latencyMs} ms`],
+            ["Kích thước hàng đợi ưu tiên", formatNumber(h.heapSize)],
+            ["Số từ khóa cây tiền tố", formatNumber(h.trieTerms)],
+            ["Dung lượng danh sách gần đây", String(h.recentCapacity)],
+            ["Độ trễ API", `${h.latencyMs} ms`],
           ].map(([label, value]) => (
             <div
               key={label as string}
@@ -429,7 +448,7 @@ function StatusTab() {
       </section>
 
       <section className="surface-card p-5">
-        <h2 className="text-base font-semibold">Event log</h2>
+        <h2 className="text-base font-semibold">Nhật ký sự kiện</h2>
         {log.isPending ? (
           <LoadingBlock rows={5} className="mt-3" />
         ) : (
@@ -440,8 +459,28 @@ function StatusTab() {
                   <span className="font-mono text-muted-foreground tnum">
                     {formatDateTime(e.at)}
                   </span>
-                  <Badge variant="outline">{e.level}</Badge>
-                  <span className="font-mono text-muted-foreground">{e.source}</span>
+                  <Badge variant="outline">
+                    {e.level === "success"
+                      ? "Thành công"
+                      : e.level === "warning"
+                        ? "Cảnh báo"
+                        : e.level === "error"
+                          ? "Lỗi"
+                          : "Thông tin"}
+                  </Badge>
+                  <span className="font-mono text-muted-foreground">
+                    {e.source === "hash_table"
+                      ? "bảng_băm"
+                      : e.source === "priority_heap"
+                        ? "hàng_đợi_ưu_tiên"
+                      : e.source === "recent_list"
+                          ? "danh_sách_gần_đây"
+                          : e.source === "benchmark"
+                            ? "đo_hiệu_năng"
+                            : e.source === "storage"
+                              ? "lưu_trữ"
+                              : "tầng_lõi"}
+                  </span>
                 </div>
                 <p className="mt-1 text-sm">{e.message}</p>
               </li>
@@ -458,7 +497,7 @@ function SystemPage() {
     <div className="space-y-6">
       <PageHeader title="Dữ liệu & hệ thống" description="Dữ liệu và trạng thái hệ thống." />
       <Tabs defaultValue="data" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-3 sm:inline-flex sm:w-auto">
           <TabsTrigger value="data">Dữ liệu</TabsTrigger>
           <TabsTrigger value="arch">Kiến trúc</TabsTrigger>
           <TabsTrigger value="status">Trạng thái</TabsTrigger>

@@ -49,8 +49,8 @@ export const statusLabel: Record<StockStatus, string> = {
 };
 
 export const operationLabel: Record<string, string> = {
-  hash_lookup: "Hash lookup vs Linear scan",
-  heap_extract: "Heap extract vs Scan max",
-  trie_prefix: "Trie prefix vs String scan",
-  initial_load: "Merge sort + nạp dữ liệu ban đầu",
+  hash_lookup: "Tra cứu bảng băm và duyệt tuyến tính",
+  heap_extract: "Lấy từ hàng đợi ưu tiên và tìm cực đại",
+  trie_prefix: "Tìm tiền tố bằng cây và duyệt chuỗi",
+  initial_load: "Sắp xếp trộn và nạp dữ liệu ban đầu",
 };

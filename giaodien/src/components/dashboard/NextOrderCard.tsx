@@ -39,7 +39,7 @@ export function NextOrderCard({
     mutationFn: () => orderApi.extractNext(),
     onSuccess: (order) => {
       if (!order) return;
-      setHeapNote(`Đã loại ${order.orderCode} và heapify lại hàng đợi.`);
+      setHeapNote(`Đã loại ${order.orderCode} và vun lại hàng đợi ưu tiên.`);
       toast.success(`Đã xử lý ${order.orderCode}`, {
         description: "Đơn tiếp theo đã sẵn sàng.",
       });
@@ -53,7 +53,7 @@ export function NextOrderCard({
     return (
       <ErrorState
         onRetry={() => candidates.refetch()}
-        message="Không lấy được đơn tiếp theo từ Priority Heap."
+        message="Không lấy được đơn tiếp theo từ hàng đợi ưu tiên."
       />
     );
 
@@ -69,7 +69,7 @@ export function NextOrderCard({
       aria-labelledby="next-order-title"
     >
       <div
-        className="pointer-events-none absolute -top-20 left-1/3 h-36 w-72 rounded-full bg-primary/12 blur-3xl dark:bg-primary/16"
+        className="pointer-events-none absolute -top-20 left-1/3 h-36 w-72 rounded-full bg-primary/12 blur-3xl"
         aria-hidden
       />
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
@@ -85,9 +85,9 @@ export function NextOrderCard({
           </div>
         </div>
         <WhyPopover
-          structure="Priority Heap (max-heap theo priority)"
-          comparisonKey="(priority DESC, sequenceNumber ASC)"
-          complexity="Peek O(1) • Extract O(log n)"
+          structure="Hàng đợi ưu tiên dạng cây vun đống cực đại"
+          comparisonKey="(ưu tiên giảm dần, số thứ tự tăng dần)"
+          complexity="Xem đỉnh O(1) • Lấy ra O(log n)"
           explanation="Ưu tiên cao hơn; cùng mức thì đơn cũ hơn trước."
         />
       </div>
@@ -101,7 +101,7 @@ export function NextOrderCard({
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Sequence</dt>
+          <dt className="text-xs text-muted-foreground">Số thứ tự</dt>
           <dd className="mt-0.5 font-mono text-sm font-semibold tnum">
             #{String(next.sequenceNumber).padStart(6, "0")}
           </dd>
@@ -134,17 +134,19 @@ export function NextOrderCard({
                 <span className="font-mono tnum">{o!.orderCode}</span>
                 <PriorityBadge priority={o!.priority} />
                 <span className="font-mono text-xs text-muted-foreground tnum">
-                  seq #{o!.sequenceNumber}
+                  thứ tự #{o!.sequenceNumber}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {o!.priorityValue < next.priorityValue
                     ? "thua vì ưu tiên thấp hơn"
-                    : "thua vì sequence lớn hơn"}
+                    : "xếp sau vì số thứ tự lớn hơn"}
                 </span>
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-muted-foreground">Peek để xem · Extract để loại root.</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Xem đỉnh để kiểm tra · Lấy ra để loại nút gốc.
+          </p>
         </div>
       ) : null}
 
@@ -161,7 +163,7 @@ export function NextOrderCard({
           className="gap-1.5"
         >
           <Zap className="h-4 w-4" aria-hidden />
-          {detailed ? "Extract & xử lý" : "Xử lý đơn này"}
+          {detailed ? "Lấy ra và xử lý" : "Xử lý đơn này"}
         </Button>
         {detailed ? (
           <Button
@@ -169,17 +171,17 @@ export function NextOrderCard({
             className="gap-1.5"
             onClick={() => {
               void candidates.refetch();
-              toast.info(`Peek: ${next.orderCode}`, {
-                description: "Xem nhưng không loại khỏi Heap.",
+              toast.info(`Đỉnh hàng đợi: ${next.orderCode}`, {
+                description: "Xem nhưng không loại khỏi hàng đợi.",
               });
             }}
           >
             <Eye className="h-4 w-4" aria-hidden />
-            Peek
+            Xem đỉnh
           </Button>
         ) : (
           <Button variant="outline" className="gap-1.5" onClick={onOpenHeap}>
-            Xem trạng thái Heap
+            Xem hàng đợi ưu tiên
             <ArrowRight className="h-4 w-4" aria-hidden />
           </Button>
         )}
@@ -190,7 +192,7 @@ export function NextOrderCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Xử lý đơn {next.orderCode}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Loại root khỏi Priority Heap và đưa đơn tiếp theo lên đầu.
+              Loại nút gốc khỏi hàng đợi ưu tiên và đưa đơn tiếp theo lên đầu.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

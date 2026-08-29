@@ -7,12 +7,10 @@ import {
   LayoutDashboard,
   ListOrdered,
   Menu,
-  Moon,
   PackageSearch,
   PanelLeftOpen,
   Presentation,
   Search,
-  Sun,
   X,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -22,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DEMO_STEPS, useDefenseMode } from "@/context/defense-mode";
-import { useTheme } from "@/context/theme";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -40,7 +37,7 @@ function UniversityLogo({ compact = false }: { compact?: boolean }) {
   return (
     <div
       className={cn(
-        "grid shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-white via-sky-50 to-red-50 shadow-[0_8px_24px_rgba(32,102,149,0.16),inset_0_1px_0_rgba(255,255,255,0.95)] ring-1 ring-white",
+        "grid shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-[0_4px_12px_rgba(32,102,149,0.1)]",
         compact ? "h-9 w-9 p-1.5" : "h-11 w-11 p-1.5",
       )}
     >
@@ -61,22 +58,22 @@ function SidebarContent({
   onNavigate?: () => void;
 }) {
   return (
-    <div className="relative flex h-full flex-col overflow-hidden bg-sidebar/88 text-sidebar-foreground backdrop-blur-2xl">
+    <div className="relative flex h-full flex-col overflow-hidden bg-transparent text-sidebar-foreground">
       <span
-        className="pointer-events-none absolute -top-20 -right-16 h-56 w-56 rounded-full bg-sky-200/38 blur-3xl dark:bg-sky-500/10"
+        className="pointer-events-none absolute -top-20 -right-16 h-56 w-56 rounded-full bg-sky-200/30 blur-3xl"
         aria-hidden
       />
       <span
-        className="pointer-events-none absolute top-52 -left-24 h-48 w-48 rounded-full bg-indigo-100/28 blur-3xl dark:bg-indigo-500/8"
+        className="pointer-events-none absolute top-52 -left-24 h-48 w-48 rounded-full bg-indigo-100/22 blur-3xl"
         aria-hidden
       />
 
       <div className={cn("relative z-10 p-3 pb-2", collapsed && "px-2")}>
         <div
           className={cn(
-            "flex min-h-16 items-center gap-3 rounded-2xl border border-white/90 bg-white/62 p-2.5 shadow-[0_10px_30px_rgba(53,91,122,0.09),inset_0_1px_0_rgba(255,255,255,0.96)] backdrop-blur-xl dark:border-white/10 dark:bg-white/6",
+            "glass-control flex min-h-16 items-center gap-3 rounded-lg border p-2.5",
             collapsed &&
-              "mx-auto h-11 min-h-0 w-11 justify-center border-0 bg-transparent p-0 shadow-none backdrop-blur-none dark:bg-transparent",
+              "mx-auto h-11 min-h-0 w-11 justify-center border-0 bg-transparent p-0 shadow-none backdrop-blur-none",
           )}
         >
           <UniversityLogo compact={collapsed} />
@@ -109,16 +106,16 @@ function SidebarContent({
             onClick={onNavigate}
             activeOptions={{ exact: item.to === "/" }}
             className={cn(
-              "relative flex min-h-12 items-center gap-3 rounded-2xl px-2.5 py-2 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/68 hover:text-sidebar-accent-foreground hover:shadow-[0_8px_22px_rgba(45,92,127,0.07)] focus-visible:ring-2 focus-visible:ring-sidebar-ring/45 focus-visible:outline-none dark:hover:bg-white/7",
+              "relative flex min-h-12 items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/58 hover:text-sidebar-accent-foreground hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] focus-visible:ring-2 focus-visible:ring-sidebar-ring/45 focus-visible:outline-none",
               collapsed && "justify-center px-1.5 hover:translate-x-0",
             )}
             activeProps={{
               className:
-                "bg-gradient-to-r from-sky-100/95 to-blue-50/82 text-sidebar-accent-foreground shadow-[0_12px_30px_rgba(42,139,197,0.12),inset_0_1px_0_rgba(255,255,255,0.92)] ring-1 ring-sky-100/90 hover:translate-x-0 hover:from-sky-100 hover:to-blue-50 [&_.sidebar-nav-icon]:bg-primary [&_.sidebar-nav-icon]:text-white [&_.sidebar-nav-icon]:shadow-none dark:from-sky-500/18 dark:to-blue-500/10 dark:ring-sky-400/15",
+                "bg-gradient-to-r from-white/78 to-sky-100/58 text-sidebar-accent-foreground shadow-[0_7px_18px_rgba(42,139,197,0.1),inset_0_1px_0_rgba(255,255,255,0.92)] ring-1 ring-white/85 backdrop-blur-xl hover:translate-x-0 hover:from-white/88 hover:to-sky-100/68 [&_.sidebar-nav-icon]:bg-primary [&_.sidebar-nav-icon]:text-white [&_.sidebar-nav-icon]:shadow-none",
             }}
             title={collapsed ? item.label : undefined}
           >
-            <span className="sidebar-nav-icon grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-sky-100/70 bg-sky-50/72 text-sky-700/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-all dark:border-sky-400/10 dark:bg-sky-400/7 dark:text-sky-200/70">
+            <span className="sidebar-nav-icon grid h-8 w-8 shrink-0 place-items-center rounded-md border border-sky-100/70 bg-sky-50/72 text-sky-700/65 transition-all">
               <item.icon className="h-[17px] w-[17px]" strokeWidth={1.9} aria-hidden />
             </span>
             {!collapsed ? (
@@ -146,7 +143,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const { theme, toggle: toggleTheme } = useTheme();
   const defense = useDefenseMode();
   const step = DEMO_STEPS[defense.stepIndex];
 
@@ -172,7 +168,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <aside
         className={cn(
-          "sticky top-0 z-40 hidden h-screen shrink-0 overflow-hidden border-r border-white/80 bg-white/74 shadow-[10px_0_36px_rgba(60,95,125,0.08)] backdrop-blur-2xl transition-[width] duration-200 dark:border-white/10 dark:bg-slate-950/82 lg:block",
+          "glass-shell sticky top-0 z-40 hidden h-screen shrink-0 overflow-hidden border-r transition-[width] duration-200 lg:block",
           collapsed ? "w-16" : "w-64",
         )}
       >
@@ -180,7 +176,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 h-16 border-b border-white/75 bg-white/68 shadow-[0_8px_30px_rgba(60,95,125,0.06)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/72">
+        <header className="glass-shell sticky top-0 z-30 h-16 border-b">
           <div className="flex h-full items-center gap-2 px-4 lg:px-6">
             <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
               <SheetTrigger asChild>
@@ -190,7 +186,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </SheetTrigger>
               <SheetContent
                 side="left"
-                className="w-64 border-sidebar-border bg-sidebar/94 p-0 backdrop-blur-2xl"
+                className="glass-popover w-64 border-sidebar-border p-0"
               >
                 <SheetTitle className="sr-only">Điều hướng</SheetTitle>
                 <SidebarContent collapsed={false} onNavigate={() => setDrawerOpen(false)} />
@@ -227,7 +223,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
-              className="ml-auto hidden h-10 w-full max-w-[370px] items-center gap-2 rounded-xl border border-white/90 bg-white/58 px-3 text-left text-sm text-muted-foreground shadow-sm backdrop-blur-xl transition-all hover:border-primary/25 hover:bg-white/82 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none dark:border-white/10 dark:bg-white/6 dark:hover:bg-white/10 sm:flex"
+              className="glass-control ml-auto hidden h-10 w-full max-w-[370px] items-center gap-2 rounded-md border px-3 text-left text-sm text-muted-foreground transition-all hover:border-primary/30 hover:bg-white/76 focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none sm:flex"
             >
               <Search className="h-4 w-4 shrink-0" aria-hidden />
               <span className="truncate">Tìm SKU hoặc mã đơn</span>
@@ -257,24 +253,6 @@ export function AppShell({ children }: { children: ReactNode }) {
               Chế độ bảo vệ
             </Button>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0"
-                  onClick={toggleTheme}
-                  aria-label="Đổi giao diện sáng/tối"
-                >
-                  {theme === "dark" ? (
-                    <Sun className="h-5 w-5" aria-hidden />
-                  ) : (
-                    <Moon className="h-5 w-5" aria-hidden />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Giao diện {theme === "dark" ? "sáng" : "tối"}</TooltipContent>
-            </Tooltip>
           </div>
         </header>
 
@@ -324,20 +302,23 @@ export function AppShell({ children }: { children: ReactNode }) {
                     navigate({ to: DEMO_STEPS[0].route });
                   }}
                 >
-                  Bắt đầu demo
+                  Bắt đầu trình diễn
                 </Button>
               )}
             </div>
           </div>
         ) : null}
 
-        <main id="main-content" className="w-full flex-1 px-4 pt-7 pb-24 lg:px-8 lg:pb-10">
+        <main
+          id="main-content"
+          className="w-full flex-1 px-4 pt-7 pb-[calc(7rem+env(safe-area-inset-bottom))] lg:px-8 lg:pb-10"
+        >
           {children}
         </main>
       </div>
 
       <nav
-        className="fixed inset-x-3 bottom-3 z-30 grid grid-cols-4 rounded-2xl border border-white/85 bg-white/76 px-2 py-1.5 shadow-[0_16px_42px_rgba(38,76,110,0.18)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/78 md:hidden"
+        className="glass-shell fixed inset-x-3 bottom-[calc(.75rem+env(safe-area-inset-bottom))] z-30 grid grid-cols-4 rounded-lg border px-2 py-1.5 md:hidden"
         aria-label="Điều hướng nhanh"
       >
         {MOBILE_NAV.map((item) => (
@@ -345,7 +326,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             key={item.to}
             to={item.to}
             activeOptions={{ exact: item.to === "/" }}
-            className="flex flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors"
+            className="flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors"
             activeProps={{ className: "bg-accent text-primary" }}
           >
             <item.icon className="h-5 w-5" aria-hidden />

@@ -87,7 +87,7 @@ function KpiCard({
   link?: { to: string; label: string };
 }) {
   return (
-    <article className="surface-card relative overflow-hidden p-4">
+    <article className="surface-card relative overflow-hidden p-3.5 sm:p-4">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <div className="min-w-0">
           <Tooltip>
@@ -96,9 +96,9 @@ function KpiCard({
             </TooltipTrigger>
             <TooltipContent>{tooltip}</TooltipContent>
           </Tooltip>
-          <p className="mt-2 text-[32px] font-normal leading-none tnum">{value}</p>
+          <p className="mt-2 text-[28px] font-normal leading-none tnum sm:text-[32px]">{value}</p>
         </div>
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-sky-200/65 bg-sky-50/82 text-[#0878b8] shadow-[0_5px_16px_rgba(8,120,184,0.07),inset_0_1px_0_rgba(255,255,255,0.92)] backdrop-blur-md dark:border-sky-400/15 dark:bg-sky-400/9 dark:text-[#64d2ff] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-sky-200/65 bg-sky-50/82 text-[#0878b8] shadow-[0_4px_12px_rgba(8,120,184,0.06)] backdrop-blur-md">
           <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
         </span>
       </div>
@@ -178,13 +178,13 @@ function DashboardPage() {
       ) : summary.isError ? (
         <ErrorState onRetry={() => summary.refetch()} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           <KpiCard
             label="Tổng sản phẩm"
             value={formatNumber(summary.data.totalProducts)}
             hint={`+${summary.data.productsAddedThisMonth} trong tháng này`}
             icon={Boxes}
-            tooltip="Số key trong Hash Table."
+            tooltip="Số khóa trong bảng băm."
           />
           <KpiCard
             label="Tổng tồn kho"
@@ -204,15 +204,15 @@ function DashboardPage() {
           <KpiCard
             label="Đơn đang chờ"
             value={formatNumber(summary.data.pendingOrders)}
-            hint="Đang nằm trong Priority Heap"
+            hint="Đang nằm trong hàng đợi ưu tiên"
             icon={Layers}
-            tooltip="Số node trong Priority Heap."
+            tooltip="Số nút trong hàng đợi ưu tiên."
             badge={`${summary.data.urgentOrders} đơn gấp`}
           />
         </div>
       )}
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <NextOrderCard onOpenHeap={() => navigate({ to: "/visualizer" })} />
 
         <section className="surface-card p-4" aria-labelledby="queue-preview-title">
@@ -229,15 +229,35 @@ function DashboardPage() {
           ) : queue.isError ? (
             <ErrorState onRetry={() => queue.refetch()} />
           ) : (
-            <div className="mt-3 overflow-x-auto">
-              <Table>
+            <>
+              <ol className="mt-3 divide-y divide-border md:hidden">
+                {(queue.data ?? []).slice(0, 5).map((o, i) => (
+                  <li
+                    key={o.orderCode}
+                    className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-3"
+                  >
+                    <span className="grid h-7 w-7 place-items-center rounded-md bg-muted text-xs text-muted-foreground tnum">
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-mono text-xs font-medium tnum">{o.orderCode}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground tnum">
+                        Thứ tự #{o.sequenceNumber} · {o.totalQuantity} sản phẩm
+                      </p>
+                    </div>
+                    <PriorityBadge priority={o.priority} />
+                  </li>
+                ))}
+              </ol>
+              <div className="mt-3 hidden overflow-x-auto md:block">
+                <Table className="min-w-[560px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-10">#</TableHead>
                     <TableHead>Mã đơn</TableHead>
                     <TableHead>Ưu tiên</TableHead>
-                    <TableHead className="text-right">Sequence</TableHead>
-                    <TableHead className="text-right">SL</TableHead>
+                    <TableHead className="text-right">Thứ tự</TableHead>
+                    <TableHead className="text-right">Số lượng</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -255,23 +275,24 @@ function DashboardPage() {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
-            </div>
+                </Table>
+              </div>
+            </>
           )}
         </section>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <section className="surface-card p-4" aria-labelledby="recent-title">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <section className="surface-card self-start p-4" aria-labelledby="recent-title">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
             <h2 id="recent-title" className="truncate text-base font-semibold">
               Cập nhật tồn kho gần đây
             </h2>
             <WhyPopover
-              structure="Doubly Linked List + Hash Map"
-              comparisonKey="SKU → node"
-              complexity="lookup O(1) • move-to-front O(1)"
-              explanation="Bản ghi mới lên HEAD; quá dung lượng sẽ loại TAIL."
+              structure="Danh sách liên kết đôi + Bảng băm"
+              comparisonKey="SKU → nút"
+              complexity="tra cứu O(1) • chuyển lên đầu O(1)"
+              explanation="Bản ghi mới lên đầu; quá dung lượng sẽ loại phần tử cuối."
             />
           </div>
           {recent.isPending ? (
@@ -316,12 +337,12 @@ function DashboardPage() {
                     {relativeTime(r.updatedAt)}
                     {defense.enabled && i === 0 ? (
                       <Badge variant="outline" className="text-[10px]">
-                        HEAD
+                        ĐẦU
                       </Badge>
                     ) : null}
                     {defense.enabled && i === arr.length - 1 ? (
                       <Badge variant="outline" className="text-[10px]">
-                        TAIL
+                        CUỐI
                       </Badge>
                     ) : null}
                   </p>
@@ -344,34 +365,34 @@ function DashboardPage() {
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {[
                   {
-                    name: "Hash Table",
+                    name: "Bảng băm",
                     icon: Hash,
-                    primary: `${formatNumber(summary.data.dsaHealth.hashKeys)} keys`,
-                    secondary: `Load factor ${summary.data.dsaHealth.hashLoadFactor}`,
-                    chip: "Avg O(1)" as const,
+                    primary: `${formatNumber(summary.data.dsaHealth.hashKeys)} khóa`,
+                    secondary: `Hệ số tải ${summary.data.dsaHealth.hashLoadFactor}`,
+                    chip: "Trung bình O(1)" as const,
                     tone: "indigo" as const,
                   },
                   {
-                    name: "Priority Heap",
+                    name: "Hàng đợi ưu tiên",
                     icon: Layers,
-                    primary: `${formatNumber(summary.data.dsaHealth.heapNodes)} nodes`,
-                    secondary: `Next: ${summary.data.dsaHealth.heapNext}`,
+                    primary: `${formatNumber(summary.data.dsaHealth.heapNodes)} nút`,
+                    secondary: `Tiếp theo: ${summary.data.dsaHealth.heapNext}`,
                     chip: "O(log n)" as const,
                     tone: "indigo" as const,
                   },
                   {
-                    name: "Trie",
+                    name: "Cây tiền tố",
                     icon: ListTree,
-                    primary: `${formatNumber(summary.data.dsaHealth.trieTerms)} terms`,
-                    secondary: `Max depth ${summary.data.dsaHealth.trieMaxDepth}`,
+                    primary: `${formatNumber(summary.data.dsaHealth.trieTerms)} từ khóa`,
+                    secondary: `Độ sâu tối đa ${summary.data.dsaHealth.trieMaxDepth}`,
                     chip: "O(k + m)" as const,
                     tone: "cyan" as const,
                   },
                   {
-                    name: "Recent Cache",
+                    name: "Bộ đệm gần đây",
                     icon: Binary,
-                    primary: `${summary.data.dsaHealth.recentUsed} / ${summary.data.dsaHealth.recentCapacity} slots`,
-                    secondary: "Move-to-front",
+                    primary: `${summary.data.dsaHealth.recentUsed} / ${summary.data.dsaHealth.recentCapacity} ô`,
+                    secondary: "Chuyển lên đầu",
                     chip: "O(1)" as const,
                     tone: "emerald" as const,
                   },
@@ -399,15 +420,15 @@ function DashboardPage() {
           </section>
 
           <section className="surface-card p-4" aria-labelledby="quick-chart-title">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-              <h2 id="quick-chart-title" className="truncate text-base font-semibold">
-                DSA vs Linear scan
+            <div className="flex flex-col items-stretch gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <h2 id="quick-chart-title" className="text-base font-semibold">
+                DSA và duyệt tuyến tính
               </h2>
               <Select
                 value={operation}
                 onValueChange={(v) => setOperation(v as BenchmarkPoint["operation"])}
               >
-                <SelectTrigger className="w-[210px]" aria-label="Chọn phép đo">
+                <SelectTrigger className="w-full sm:w-[210px]" aria-label="Chọn phép đo">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -453,7 +474,7 @@ function DashboardPage() {
                         dot
                       />
                       <Line
-                        name="Linear scan"
+                        name="Duyệt tuyến tính"
                         type="monotone"
                         dataKey="linear"
                         stroke="var(--color-destructive)"

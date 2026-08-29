@@ -43,14 +43,14 @@ export function HeapTree({
               >
                 {node.index === 0 ? (
                   <p className="text-[10px] font-bold tracking-wider text-primary uppercase">
-                    Next
+                    Tiếp theo
                   </p>
                 ) : null}
                 <p className="font-mono text-xs font-semibold tnum">
                   {node.orderCode.replace("ORD-2026-", "…")}
                 </p>
                 <p className="text-[11px] text-muted-foreground tnum">
-                  p{node.priorityValue} • seq {node.sequenceNumber}
+                  ưu tiên {node.priorityValue} • thứ tự {node.sequenceNumber}
                 </p>
               </div>
             ))}

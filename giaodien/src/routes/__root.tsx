@@ -8,7 +8,6 @@ import {
 } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { DefenseModeProvider } from "@/context/defense-mode";
-import { ThemeProvider } from "@/context/theme";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -91,16 +90,14 @@ function RootComponent() {
     <>
       <HeadContent />
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <DefenseModeProvider>
-            <TooltipProvider delayDuration={200}>
-              <AppShell>
-                <Outlet />
-              </AppShell>
-              <Toaster position="top-right" richColors />
-            </TooltipProvider>
-          </DefenseModeProvider>
-        </ThemeProvider>
+        <DefenseModeProvider>
+          <TooltipProvider delayDuration={200}>
+            <AppShell>
+              <Outlet />
+            </AppShell>
+            <Toaster position="top-right" richColors label="Thông báo" />
+          </TooltipProvider>
+        </DefenseModeProvider>
       </QueryClientProvider>
     </>
   );
