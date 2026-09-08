@@ -12,7 +12,7 @@ MSSV: **24133066**. Làm trong [danh_sach_gan_day.cpp](danh_sach_gan_day.cpp) v�
 3. Khi các module có cài đặt, tổ chức kiểm thử tích hợp và ghi nhật ký debug của nhóm.
    Bộ kiểm tra HTTP có sẵn chỉ kiểm tra kết nối, chưa kiểm chứng thuật toán.
 
-## Hợp đồng hàm
+## Cách dùng các hàm
 
 | Hàm | Hành vi |
 | --- | --- |

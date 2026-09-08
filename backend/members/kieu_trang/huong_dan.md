@@ -11,7 +11,7 @@ và [chay_thu.cpp](chay_thu.cpp). Xem [quy tắc chung](../../../README.md) và
 2. Hoàn thiện `load_data`/`save_data` chỉ đọc/ghi bản ghi.
 3. Viết `run_demo`: đọc đầu vào, nạp bản ghi vào Hash Table, gọi các thao tác và trả JSON thật.
 
-## Hợp đồng Hash Table
+## Cách dùng Hash Table
 
 | Hàm | Hành vi |
 | --- | --- |
@@ -26,7 +26,7 @@ Khóa và mã định danh trong value phải thống nhất. Ghi rõ con trỏ 
 khi cập nhật, xóa hoặc băm lại; không lưu con trỏ treo giữa các module.
 Tra cứu/thêm/xóa của bảng băm dự kiến trung bình O(1), trường hợp xấu O(n); `values` là O(n).
 
-## Hợp đồng đọc/ghi
+## Cách đọc và ghi dữ liệu
 
 `load_data(path)` nhận **thư mục**, mặc định nhóm dùng `backend/data/data_chinh`.
 Đọc `san_pham.csv` và `don_hang.csv` thành `StorageData`, chưa xây chỉ mục hoặc chọn đơn ưu tiên.
@@ -80,7 +80,7 @@ nếu sau này làm chức năng upload, không gửi một đường dẫn máy
 
 ## Bàn giao
 
-- Loader, bảng băm, test, hợp đồng giữ con trỏ và demo thật.
+- Loader, bảng băm, test, quy tắc sử dụng con trỏ và demo thật.
 - Phối hợp Ngân đồng bộ chỉ mục tên; Minh quản lý đơn; Trâm dùng chỉ mục vị trí nút.
 - Viết Q1–Q4 của MC1 theo mục 2 của Plan; giải thích va chạm và chi phí trung bình/xấu nhất.
 - Ghi kiểm thử, debug và nhật ký dùng công cụ. Test `main()` riêng đặt trong `kiem_thu/`.

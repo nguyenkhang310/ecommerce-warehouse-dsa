@@ -11,7 +11,7 @@ MSSV: **24133039**. Làm trong [hang_doi_uu_tien.cpp](hang_doi_uu_tien.cpp) và
 2. Hoàn thiện các hàm của `PriorityQueue`, rồi mới viết phần đọc JSON/gọi hàm trong `run_demo`.
 3. Trả snapshot để giao diện vẽ cây, phối hợp Khang đo `push`, `peek`, `pop` với cách quét tuyến tính.
 
-## Hợp đồng hàm
+## Cách dùng các hàm
 
 | Hàm | Hành vi cần giữ | Độ phức tạp dự kiến |
 | --- | --- | --- |

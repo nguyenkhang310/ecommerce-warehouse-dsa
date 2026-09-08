@@ -11,7 +11,7 @@ MSSV: **24133040**. Làm trong [cay_tien_to.cpp](cay_tien_to.cpp) và
    một SKU cũng có thể được lập chỉ mục bằng cả mã và tên.
 3. Viết `run_demo`, cung cấp ví dụ cây nhỏ để vẽ và phối hợp Khang đo với quét tiền tố tuyến tính.
 
-## Hợp đồng hàm
+## Cách dùng các hàm
 
 | Hàm | Đầu vào và kết quả |
 | --- | --- |

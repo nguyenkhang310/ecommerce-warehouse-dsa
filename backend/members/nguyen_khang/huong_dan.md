@@ -12,7 +12,7 @@ Biểu đồ benchmark hiện dùng dữ liệu mô phỏng; cần nối với k
 3. Viết `run_demo`, phối hợp nhóm nối service C++ có trạng thái chung với các màn hình web.
    Hoàn thiện từng màn hình; bỏ nhãn mô phỏng chỉ khi màn hình đó đã dùng kết quả thật.
 
-## Hợp đồng hàm
+## Cách dùng các hàm
 
 | Hàm | Hành vi |
 | --- | --- |
