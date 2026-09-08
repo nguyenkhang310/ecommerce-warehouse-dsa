@@ -95,7 +95,7 @@ function RootComponent() {
             <AppShell>
               <Outlet />
             </AppShell>
-            <Toaster position="top-right" richColors label="Thông báo" />
+            <Toaster position="top-right" richColors containerAriaLabel="Thông báo" />
           </TooltipProvider>
         </DefenseModeProvider>
       </QueryClientProvider>

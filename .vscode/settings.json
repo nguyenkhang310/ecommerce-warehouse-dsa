@@ -1,0 +1,7 @@
+{
+  "files.exclude": {
+    "backend/thu_vien": true,
+    "backend/build": true,
+    "**/node_modules": true
+  }
+}

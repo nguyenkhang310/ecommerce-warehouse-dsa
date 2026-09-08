@@ -31,6 +31,7 @@ const navItems = [
   { label: "Mô phỏng DSA", to: "/visualizer", icon: Binary },
   { label: "Hiệu năng", to: "/performance", icon: ChartNoAxesCombined },
   { label: "Dữ liệu & hệ thống", to: "/system", icon: Database },
+  { label: "Demo C++", to: "/cpp", icon: Binary },
 ] as const;
 
 export function CommandPalette({

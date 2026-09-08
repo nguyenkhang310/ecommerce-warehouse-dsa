@@ -29,6 +29,7 @@ const NAV = [
   { label: "Mô phỏng DSA", to: "/visualizer", icon: Binary },
   { label: "Hiệu năng", to: "/performance", icon: ChartNoAxesCombined },
   { label: "Dữ liệu & hệ thống", to: "/system", icon: Database },
+  { label: "Demo C++", to: "/cpp", icon: Binary },
 ] as const;
 
 const MOBILE_NAV = [NAV[0], NAV[1], NAV[2], NAV[3]];
@@ -313,6 +314,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           id="main-content"
           className="w-full flex-1 px-4 pt-7 pb-[calc(7rem+env(safe-area-inset-bottom))] lg:px-8 lg:pb-10"
         >
+          {pathname !== "/cpp" ? (
+            <div className="mb-5 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+              Các màn hình này đang dùng dữ liệu và thuật toán TypeScript mô phỏng.
+              Số liệu hiệu năng ở đây chưa phải kết quả đo C++.{" "}
+              <Link to="/cpp" className="font-semibold text-primary underline underline-offset-4">
+                Mở Demo C++
+              </Link>
+            </div>
+          ) : null}
           {children}
         </main>
       </div>

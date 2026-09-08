@@ -6,4 +6,10 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [tanstackRouter({ target: "react", autoCodeSplitting: true }), react(), tailwindcss()],
   resolve: { tsconfigPaths: true },
+  server: {
+    proxy: { "/api": "http://127.0.0.1:8080" },
+  },
+  preview: {
+    proxy: { "/api": "http://127.0.0.1:8080" },
+  },
 });

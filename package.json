@@ -1,0 +1,15 @@
+{
+  "name": "ecommerce-warehouse-dsa",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "backend:setup": "node scripts/quan_ly_cpp.mjs setup",
+    "backend:build": "node scripts/quan_ly_cpp.mjs build",
+    "backend:start": "node scripts/quan_ly_cpp.mjs start",
+    "demo": "node scripts/quan_ly_cpp.mjs demo",
+    "frontend:dev": "npm --prefix giaodien run dev",
+    "frontend:build": "npm --prefix giaodien run build",
+    "check:bridge": "node scripts/kiem_tra_ket_noi.mjs",
+    "data:setup": "node scripts/quan_ly_cpp.mjs data"
+  }
+}
