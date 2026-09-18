@@ -71,11 +71,10 @@ bool doc_csv(std::istream& f, CsvRow& columns) {
     }
     return has_data;
 }
-//save
+
 void ghi_csv(std::ostream& f, const CsvRow& columns) {
     for (std::size_t i = 0; i < columns.size(); ++i) {
         f << std::quoted(columns[i], '"', '"');
-
         if (i + 1 == columns.size()) {
             f << '\n';
         } else {
@@ -83,6 +82,7 @@ void ghi_csv(std::ostream& f, const CsvRow& columns) {
         }
     }
 }
+
 std::string priority_to_string(Priority priority) {
     if (priority == Priority::normal) {
         return "normal";
@@ -93,9 +93,9 @@ std::string priority_to_string(Priority priority) {
     if (priority == Priority::urgent) {
         return "urgent";
     }
-
     throw std::runtime_error("Priority khong hop le");
 }
+
 std::string status_to_string(OrderStatus status) {
     if (status == OrderStatus::queued) {
         return "queued";
@@ -194,7 +194,6 @@ std::uint64_t parse_uint64(
     std::size_t record,
     const std::string& field
 ) {
-    // uint64_t khong nhan gia tri am
     if (!value.empty() && value[0] == '-') {
         throw std::runtime_error(
             file + " - ban ghi " + std::to_string(record)
@@ -302,14 +301,12 @@ StorageData load_data(const std::filesystem::path& path) {
                 + ": stock khong duoc am"
             );
         }
-
         if (product.reorder_level < 0) {
             throw std::runtime_error(
                 "san_pham.csv - ban ghi " + std::to_string(product_record)
                 + ": reorder_level khong duoc am"
             );
         }
-
         product.created_at = row[col_created];
         product.updated_at = row[col_updated];
         data.products.push_back(product);
@@ -395,7 +392,7 @@ StorageData load_data(const std::filesystem::path& path) {
                 + ": priority khong hop le: " + row[order_col_priority]
             );
         }
-       
+    
         if (row[order_col_status] == "queued") {
             order.status = OrderStatus::queued;
         }
@@ -427,7 +424,6 @@ StorageData load_data(const std::filesystem::path& path) {
         order.note = "";
         data.orders.push_back(order);
     }   
-
     return data;
 }
 void save_data(const std::filesystem::path& path, const StorageData& data) {
@@ -498,7 +494,6 @@ void save_data(const std::filesystem::path& path, const StorageData& data) {
         }
     }
 }
-
 } // namespace dsa::kieu_trang
 
 #endif
