@@ -5,32 +5,46 @@
 #include <cstddef>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 namespace dsa::kieu_trang {
 
-// MC1: dùng template cho Product, Order và chỉ mục SKU đến nút của TP3.
-// Kế hoạch cho phép std::unordered_map; tự cài nếu giảng viên yêu cầu.
 template <typename Value>
 class HashTable {
 public:
-    void upsert(const std::string& /*key*/, const Value& /*value*/) {
-        todo("kieu_trang", "HashTable::upsert");
+    void upsert(const std::string& key, const Value& value) {
+        data[key]=value;
     }
-    Value* find(const std::string& /*key*/) {
-        todo("kieu_trang", "HashTable::find");
+    Value* find(const std::string& key) {
+        auto it=data.find(key);
+        if(it==data.end()){
+            return nullptr;
+        }
+        return &it->second;
     }
-    const Value* find(const std::string& /*key*/) const {
-        todo("kieu_trang", "HashTable::find const");
+    const Value* find(const std::string& key) const {
+        auto it=data.find(key);
+        if(it==data.end()){
+            return nullptr;
+        }
+        return &it->second;
     }
-    bool erase(const std::string& /*key*/) {
-        todo("kieu_trang", "HashTable::erase");
+    bool erase(const std::string& key) {
+        return data.erase(key)>0;
     }
-    std::size_t size() const { todo("kieu_trang", "HashTable::size"); }
-    std::vector<Value> values() const { todo("kieu_trang", "HashTable::values"); }
+    std::size_t size() const { 
+        return data.size();
+    }
+    std::vector<Value> values() const { 
+        std::vector<Value> result;
+        for(const auto& pair:data){
+            result.push_back(pair.second);
+        }
+        return result;
+    }
 
 private:
-    // TODO: thêm vùng lưu trữ; ghi rõ hiệu lực con trỏ sau thêm, xóa hoặc băm lại.
-};
+    std::unordered_map<std::string, Value> data;};
 
 } // namespace dsa::kieu_trang
 
