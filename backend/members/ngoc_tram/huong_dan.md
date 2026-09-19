@@ -69,6 +69,7 @@ Kiểm tra cả đơn thiếu hàng, SKU không có và cập nhật lặp. Ghi 
 Module và demo nằm trong thư mục `ngoc_tram`. Test riêng đặt trong thư mục con
 `ngoc_tram/kiem_thu/`, không include vào demo. Kiểm thử tích hợp dùng nhiều module
 thì đặt tại `backend/kiem_thu/` để cả nhóm cùng sửa, không để riêng trong module TP3.
+Chạy test riêng bằng `npm run test:cpp -- ngoc_tram` từ thư mục gốc của repo.
 
 ## Bàn giao
 

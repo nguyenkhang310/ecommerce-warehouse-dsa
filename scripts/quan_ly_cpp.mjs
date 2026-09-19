@@ -74,6 +74,19 @@ async function compile(member) {
   return output;
 }
 
+function compileTest(member) {
+  mkdirSync(build, { recursive: true });
+  const source = join(backend, "members", member, "kiem_thu/kiem_tra.cpp");
+  if (!existsSync(source)) throw new Error("Chưa có file kiểm thử: " + source);
+  const output = join(build, "kiem_tra_" + member + suffix);
+  execute(process.env.CXX || "g++", [
+    "-std=c++17", "-O0", "-g", "-Wall", "-Wextra", "-Wpedantic",
+    "-finput-charset=UTF-8", "-fexec-charset=UTF-8", "-I", backend,
+    source, "-o", output,
+  ]);
+  return output;
+}
+
 // Node chỉ tải nguồn và gọi g++; toàn bộ quy tắc làm sạch nằm trong lam_sach.cpp.
 async function prepareData() {
   const source = join(backend, "data/goc/nguon.csv");
@@ -128,8 +141,16 @@ try {
       execute(executable, input ? [resolve(process.cwd(), input)] : []);
       break;
     }
+    case "test": {
+      const [member] = positional;
+      if (!members.includes(member) || positional.length !== 1) {
+        throw new Error("Cách dùng: npm run test:cpp -- <" + members.join("|") + ">");
+      }
+      execute(compileTest(member), []);
+      break;
+    }
     default:
-      throw new Error("Lệnh: setup | data | build [--release] | start [port] | demo <member> [input.json]");
+      throw new Error("Lệnh: setup | data | build [--release] | start [port] | demo <member> [input.json] | test <member>");
   }
 } catch (error) {
   console.error(error.message);

@@ -7,6 +7,7 @@
     "backend:build": "node scripts/quan_ly_cpp.mjs build",
     "backend:start": "node scripts/quan_ly_cpp.mjs start",
     "demo": "node scripts/quan_ly_cpp.mjs demo",
+    "test:cpp": "node scripts/quan_ly_cpp.mjs test",
     "frontend:dev": "npm --prefix giaodien run dev",
     "frontend:build": "npm --prefix giaodien run build",
     "check:bridge": "node scripts/kiem_tra_ket_noi.mjs",
