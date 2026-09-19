@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -52,12 +52,12 @@ function execute(command, commandArgs) {
 }
 
 // Biên dịch một điểm vào; các file chức năng được nạp bằng #include.
-async function compile(member) {
+async function compile(member, optimized = release) {
   await setup();
   mkdirSync(build, { recursive: true });
   const output = join(build, member ? "chay_thu_" + member + suffix : "may_chu" + suffix);
   const compileArgs = [
-    "-std=c++17", release ? "-O2" : "-O0", "-g", "-Wall", "-Wextra", "-Wpedantic",
+    "-std=c++17", optimized ? "-O2" : "-O0", "-g", "-Wall", "-Wextra", "-Wpedantic",
     "-finput-charset=UTF-8", "-fexec-charset=UTF-8", "-pthread",
     "-I", backend, "-isystem", deps,
   ];
@@ -69,9 +69,69 @@ async function compile(member) {
   }
   if (process.platform === "win32") compileArgs.push("-lws2_32");
   compileArgs.push("-o", output);
-  console.log("Biên dịch C++ " + (member ?? "máy chủ") + (release ? " (-O2)" : " (-O0, gỡ lỗi)"));
+  console.log("Biên dịch C++ " + (member ?? "máy chủ") + (optimized ? " (-O2)" : " (-O0, gỡ lỗi)"));
   execute(process.env.CXX || "g++", compileArgs);
   return output;
+}
+
+async function backendReady() {
+  try {
+    const response = await fetch("http://127.0.0.1:8080/api/health", {
+      signal: AbortSignal.timeout(500),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+function stopProcess(child) {
+  if (!child?.pid || child.exitCode !== null) return;
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" });
+  } else {
+    child.kill("SIGTERM");
+  }
+}
+
+async function runProject() {
+  const executable = join(build, "may_chu" + suffix);
+  if (!existsSync(executable)) await compile(undefined, true);
+
+  let backendProcess;
+  if (!(await backendReady())) {
+    backendProcess = spawn(executable, ["8080"], { cwd: root, stdio: "inherit" });
+    for (let attempt = 0; attempt < 50 && !(await backendReady()); attempt++) {
+      if (backendProcess.exitCode !== null) throw new Error("Backend C++ không khởi động được.");
+      await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+    }
+    if (!(await backendReady())) throw new Error("Backend C++ chưa sẵn sàng ở cổng 8080.");
+  } else {
+    console.log("Backend C++ đang chạy ở http://127.0.0.1:8080");
+  }
+
+  const frontendProcess = process.platform === "win32"
+    ? spawn(process.env.ComSpec || "cmd.exe", ["/d", "/s", "/c", "npm --prefix giaodien run dev"], {
+      cwd: root,
+      stdio: "inherit",
+    })
+    : spawn("npm", ["--prefix", "giaodien", "run", "dev"], { cwd: root, stdio: "inherit" });
+
+  await new Promise((resolveRun) => {
+    let stopping = false;
+    const finish = (code = 0) => {
+      if (stopping) return;
+      stopping = true;
+      stopProcess(frontendProcess);
+      stopProcess(backendProcess);
+      process.exitCode = code;
+      resolveRun();
+    };
+    process.once("SIGINT", () => finish());
+    process.once("SIGTERM", () => finish());
+    frontendProcess.once("exit", (code) => finish(code ?? 1));
+    backendProcess?.once("exit", (code) => finish(code ?? 1));
+  });
 }
 
 // Node chỉ tải nguồn và gọi g++; toàn bộ quy tắc làm sạch nằm trong lam_sach.cpp.
@@ -113,6 +173,9 @@ try {
     case "build":
       await compile();
       break;
+    case "dev":
+      await runProject();
+      break;
     case "start": {
       const executable = join(build, "may_chu" + suffix);
       if (!existsSync(executable)) throw new Error("Chạy npm run backend:build trước.");
@@ -129,7 +192,7 @@ try {
       break;
     }
     default:
-      throw new Error("Lệnh: setup | data | build [--release] | start [port] | demo <member> [input.json]");
+      throw new Error("Lệnh: dev | setup | data | build [--release] | start [port] | demo <member> [input.json]");
   }
 } catch (error) {
   console.error(error.message);

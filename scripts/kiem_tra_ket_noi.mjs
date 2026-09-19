@@ -28,10 +28,17 @@ async function request(path, body) {
     method: body === undefined ? "GET" : "POST",
     headers: { "Content-Type": "application/json" },
     body,
-    signal: AbortSignal.timeout(3000),
+    signal: AbortSignal.timeout(30000),
   });
   assert.equal(response.headers.get("X-DSA-Runtime"), "C++");
   return { status: response.status, data: await response.json() };
+}
+
+async function app(action, data = {}) {
+  const response = await request("/api/app", JSON.stringify({ action, data }));
+  assert.equal(response.status, 200, action);
+  assert.equal(response.data.ok, true, action);
+  return response.data.data;
 }
 
 try {
@@ -65,7 +72,11 @@ try {
       prefix: "sa",
       erase: { term: "samsung", sku: "A" },
     },
-    kieu_trang: { data_dir: "backend/data/data_chinh", sku: "__KHONG_TON_TAI__" },
+    kieu_trang: {
+      data_dir: "backend/data/data_chinh",
+      sku: "PRD-CMCX-R837344",
+      order_id: "ORD-A9GBX",
+    },
     ngoc_tram: {
       capacity: 3,
       updates: [
@@ -74,30 +85,92 @@ try {
         { sku: "A", delta: -1, stock_after: 10 },
       ],
     },
-    nguyen_khang: {},
+    nguyen_khang: {
+      data_dir: "backend/data/data_chinh",
+      operation: "search_sku",
+      sizes: [1000],
+      iterations: 5,
+      warmup: false,
+    },
   };
   for (const member of modules.data.modules) {
     assert.equal(member.entry, "backend/members/" + member.id + "/chay_thu.cpp");
     assert.ok(existsSync(join(root, member.entry)), "Thiếu file chạy thử: " + member.entry);
     const result = await request("/api/demo/" + member.id,
       JSON.stringify(demoInputs[member.id]));
-    // Module đã hoàn thiện trả 200; phần đang làm trả 501.
-    assert.ok([200, 501].includes(result.status));
+    assert.equal(result.status, 200);
     assert.equal(result.data.member, member.id);
-    if (result.status === 501) {
-      assert.equal(result.data.ok, false);
-      assert.equal(result.data.error.code, "NOT_IMPLEMENTED");
-      assert.equal(result.data.error.owner, member.id);
-    } else {
-      assert.equal(result.data.ok, true);
-      assert.ok("result" in result.data);
+    assert.equal(result.data.ok, true);
+    assert.ok("result" in result.data);
+    if (member.id === "kieu_trang") {
+      assert.equal(result.data.result.product.sku, "PRD-CMCX-R837344");
+      assert.equal(result.data.result.order.id, "ORD-A9GBX");
+    }
+    if (member.id === "nguyen_khang") {
+      assert.equal(result.data.result.points.length, 1);
+      assert.equal(result.data.result.points[0].dataset_size, 1000);
     }
   }
+  const health = await app("health");
+  assert.equal(health.mode, "live");
+  assert.equal(health.productCount, 10000);
+  assert.equal(health.orderCount, 10000);
+  assert.equal((await app("dashboard")).totalProducts, 10000);
+
+  const sku = "PRD-CMCX-R837344";
+  const lookup = await app("product_lookup", { sku });
+  assert.equal(lookup.product.sku, sku);
+  assert.equal((await app("product_detail", { sku })).product.stock, 191);
+  assert.ok((await app("product_search", { prefix: "prd-cmcx", field: "sku" })).entries.length > 0);
+  assert.ok((await app("products", { category: "Home", status: "all" })).length > 0);
+
+  await app("product_create", {
+    sku: "PRD-TEST-API", name: "Sản phẩm kiểm tra", category: "Test",
+    stock: 5, reorderLevel: 1,
+  });
+  assert.equal((await app("product_lookup", { sku: "PRD-TEST-API" })).product.stock, 5);
+  await app("stock_update", { sku, delta: 1, reason: "inbound", note: "Kiểm tra API" });
+  assert.equal((await app("recent", { limit: 6 }))[0].sku, sku);
+  assert.equal((await app("recent_snapshot")).items[0].stockAfter, 192);
+
+  const order = await app("order_lookup", { orderCode: "ORD-A9GBX" });
+  assert.equal(order.order.id, "ORD-A9GBX");
+  assert.equal((await app("next_orders", { limit: 3 })).length, 3);
+  assert.equal((await app("heap")).size, 10000);
+  const queueSummary = await app("queue_summary");
+  assert.equal(queueSummary.urgent + queueSummary.high + queueSummary.normal, 10000);
+  assert.equal((await app("queue", { priority: "urgent" }))[0].priority, "urgent");
+  await app("order_enqueue", {
+    orderCode: "ORD-TEST-API", priority: "urgent",
+    items: [{ sku, quantity: 1 }], note: "Kiểm tra API",
+  });
+  assert.equal((await app("order_lookup", { orderCode: "ORD-TEST-API" })).order.status, "queued");
+  assert.ok(await app("order_extract"));
+
+  assert.ok((await app("hash", { limit: 5 })).length > 0);
+  assert.ok((await app("trie", { prefix: "prd-cmcx", field: "sku" })).suggestions.length > 0);
+  for (const operation of ["hash_lookup", "heap_extract", "trie_prefix", "initial_load"]) {
+    const benchmark = await app("benchmark_run", {
+      operation, sizes: [1000], iterations: 2, warmup: true,
+    });
+    assert.equal(benchmark[0].mode, "live");
+  }
+  assert.equal((await app("benchmark_history")).length, 4);
+  const operationLogs = await app("logs");
+  assert.ok(operationLogs.length > 0);
+  assert.equal(typeof operationLogs[0].id, "string");
+  assert.equal(typeof operationLogs[0].message, "string");
+  assert.equal((await app("ping")).ok, true);
+
+  assert.equal(await app("reset"), true);
+  assert.equal((await app("health")).productCount, 10000);
+  assert.equal((await app("product_lookup", { sku })).product.stock, 191);
+  assert.equal((await request("/api/app", JSON.stringify({ action: "khong_co", data: {} }))).status, 400);
   assert.equal((await request("/api/demo/nhat_minh", "{")).status, 400);
   assert.equal((await request("/api/demo/nhat_minh", "[]")).status, 400);
   assert.equal((await request("/api/demo/khong_co", "{}")).status, 404);
   assert.equal((await request("/api/unknown")).status, 404);
-  console.log("PASS: C++ health, 5 module routes, JSON errors and unknown routes.");
+  console.log("PASS: C++ service, 5 module routes, real data flow and error handling.");
 } finally {
   if (server.pid && server.exitCode === null) {
     const closed = once(server, "close");

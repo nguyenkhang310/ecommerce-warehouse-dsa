@@ -42,7 +42,6 @@ function CppDemoPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Cấu trúc dữ liệu và giải thuật"
         title="Demo C++"
         description="Chọn thành viên, gửi dữ liệu và xem kết quả trực tiếp từ chương trình C++."
         actions={
@@ -55,12 +54,9 @@ function CppDemoPage() {
       <div className="surface-card space-y-2 p-5 text-sm">
         <p>Luồng chạy: giao diện → HTTP → C++ → kết quả JSON.</p>
         <p className="text-muted-foreground">
-          Mỗi lần chạy là một kịch bản độc lập. Sau khi sửa C++, dừng server bằng Ctrl+C,
-          build lại rồi khởi động lại.
+          Mẫu đầu vào nằm trong huong_dan.md của từng thành viên.
         </p>
-        <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
-          {"npm run backend:build\nnpm run backend:start"}
-        </pre>
+        <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">npm run dev</pre>
       </div>
       {modules.isPending ? (
         <LoadingBlock rows={3} />
@@ -98,9 +94,6 @@ function CppDemoPage() {
                 onChange={(event) => setInput(event.target.value)}
                 spellCheck={false}
               />
-              <p className="text-xs text-muted-foreground">
-                Mẫu đầu vào nằm trong huong_dan.md của từng thành viên.
-              </p>
             </div>
             <Button onClick={run} disabled={running || !selected}>
               <Play className="mr-2 h-4 w-4" aria-hidden />

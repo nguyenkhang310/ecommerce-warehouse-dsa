@@ -6,7 +6,6 @@
 #include <vector>
 #include <stdexcept>
 #include "hang_doi_uu_tien.cpp"
-#include "shared/bao_loi.cpp"
 
 namespace dsa::nhat_minh {
 

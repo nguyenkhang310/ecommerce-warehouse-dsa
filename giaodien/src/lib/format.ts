@@ -36,6 +36,14 @@ export function waitingTime(iso: string): string {
   return `${Math.floor(mins / 60)} giờ ${mins % 60} phút`;
 }
 
+// Sinh mã đơn đúng định dạng dữ liệu thật (ORD-XXXXX) để tránh trùng.
+export function randomOrderCode(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let tail = "";
+  for (let i = 0; i < 5; i += 1) tail += chars[Math.floor(Math.random() * chars.length)];
+  return `ORD-${tail}`;
+}
+
 export const priorityLabel: Record<Priority, string> = {
   urgent: "Gấp",
   high: "Cao",
@@ -49,8 +57,8 @@ export const statusLabel: Record<StockStatus, string> = {
 };
 
 export const operationLabel: Record<string, string> = {
-  hash_lookup: "Tra cứu bảng băm và duyệt tuyến tính",
-  heap_extract: "Lấy từ hàng đợi ưu tiên và tìm cực đại",
-  trie_prefix: "Tìm tiền tố bằng cây và duyệt chuỗi",
-  initial_load: "Sắp xếp trộn và nạp dữ liệu ban đầu",
+  hash_lookup: "Tra cứu theo mã",
+  heap_extract: "Lấy đơn ưu tiên",
+  trie_prefix: "Tìm theo tiền tố",
+  initial_load: "Sắp xếp Merge Sort",
 };

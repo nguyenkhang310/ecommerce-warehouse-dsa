@@ -53,17 +53,27 @@ Lưu trữ không làm MC1/MC2: không trả kết quả tìm SKU, sắp ưu ti�
 Đầu vào cho `run_demo`:
 
 ```json
-{"data_dir":"backend/data/data_chinh","sku":"COPY_SKU_TU_CSV"}
+{"data_dir":"backend/data/data_chinh","sku":"COPY_SKU_TU_CSV","order_id":"COPY_ID_TU_CSV"}
 ```
 
-Thay chuỗi SKU bằng một mã có thật trong CSV. `run_demo` gọi `load_data`, nạp sản phẩm vào Hash Table,
-rồi tra SKU. Trả số sản phẩm/đơn và bản ghi tìm thấy, hoặc `null` nếu không có.
+Có thể truyền `sku`, `order_id` hoặc cả hai. `run_demo` gọi `load_data`, tạo hai Hash Table
+cho sản phẩm và đơn hàng rồi tra đúng mã. Kết quả không có trả `null`.
 Đầu vào sai ném `std::invalid_argument`; lỗi file ghi thông tin đủ để sửa đường dẫn.
 
 Chạy từ gốc repo bằng `npm run demo -- kieu_trang duong_dan/input.json`
 hoặc nhập JSON tại trang `/cpp`.
 Web gửi đường dẫn đến backend chạy trên cùng máy; file chọn từ trình duyệt phải gửi nội dung
 nếu sau này làm chức năng upload, không gửi một đường dẫn máy khách để server tự mở.
+
+## Lập luận Q1–Q4 cho MC1
+
+1. **Có cần giữ thứ tự không?** Không. MC1 chỉ cần tìm đúng sản phẩm hoặc đơn hàng theo mã.
+2. **Khóa và kiểu tải là gì?** Khóa là chuỗi SKU hoặc mã đơn. Hệ thống tra cứu nhiều,
+   đồng thời có thêm, cập nhật và xóa bản ghi.
+3. **Có chấp nhận trường hợp xấu nhất không?** Có. Bảng băm dự kiến O(1) trung bình;
+   khi nhiều khóa va chạm có thể thành O(n), nhưng trường hợp này hiếm ở dữ liệu bình thường.
+4. **Yếu tố thực tế nào quan trọng?** Dữ liệu tăng theo thời gian nên cần thêm bản ghi nhanh.
+   Nhóm dùng `unordered_map` vì Plan cho phép STL và tập trung tự cài Heap cùng Trie.
 
 ## Các ca phải kiểm thử
 
@@ -78,9 +88,16 @@ nếu sau này làm chức năng upload, không gửi một đường dẫn máy
 | Lưu rồi đọc lại thư mục runtime | Các trường nghiệp vụ giữ nguyên, kể cả sequence |
 | Bộ chính | 10.000 Product, 10.000 Order, mỗi SKU đơn có Product tương ứng |
 
+Chạy test từ gốc repo:
+
+```powershell
+g++ -std=c++17 -Wall -Wextra -Wpedantic -I backend backend/members/kieu_trang/kiem_thu/kiem_tra.cpp -o backend/build/kiem_tra_kieu_trang.exe
+./backend/build/kiem_tra_kieu_trang.exe
+```
+
 ## Bàn giao
 
 - Loader, bảng băm, test, quy tắc sử dụng con trỏ và demo thật.
 - Phối hợp Ngân đồng bộ chỉ mục tên; Minh quản lý đơn; Trâm dùng chỉ mục vị trí nút.
-- Viết Q1–Q4 của MC1 theo mục 2 của Plan; giải thích va chạm và chi phí trung bình/xấu nhất.
+- Đưa phần Q1–Q4 phía trên vào báo cáo; giải thích va chạm và chi phí trung bình/xấu nhất.
 - Ghi kiểm thử, debug và nhật ký dùng công cụ. Test `main()` riêng đặt trong `kiem_thu/`.

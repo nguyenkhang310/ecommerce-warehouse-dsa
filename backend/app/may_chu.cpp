@@ -5,6 +5,7 @@
 #include "members/kieu_trang/chay_thu.cpp"
 #include "members/ngoc_tram/chay_thu.cpp"
 #include "members/nguyen_khang/chay_thu.cpp"
+#include "app/dich_vu.cpp"
 #include <array>
 #include <iostream>
 #include <string>
@@ -56,6 +57,7 @@ int main(int argc, char** argv) {
     }
 
     httplib::Server server;
+    dsa::WarehouseService warehouse;
     // Demo cục bộ, xử lý tuần tự để dễ gỡ lỗi.
     server.new_task_queue = [] { return new httplib::ThreadPool(1); };
     // Đóng kết nối rảnh để yêu cầu tiếp theo không phải chờ.
@@ -64,7 +66,25 @@ int main(int argc, char** argv) {
     server.set_read_timeout(5, 0);
 
     server.Get("/api/health", [](const httplib::Request&, httplib::Response& response) {
-        send(response, {200, {{"ok", true}, {"language", "C++"}, {"stage", "scaffold"}}});
+        send(response, {200, {{"ok", true}, {"language", "C++"}, {"stage", "live"}}});
+    });
+
+    server.Post("/api/app", [&warehouse](const httplib::Request& request,
+                                         httplib::Response& response) {
+        try {
+            const auto body = dsa::Json::parse(request.body, nullptr, false);
+            if (body.is_discarded() || !body.is_object()
+                || !body.contains("action") || !body["action"].is_string()) {
+                throw std::invalid_argument("Yêu cầu phải có action");
+            }
+            const auto data = body.value("data", dsa::Json::object());
+            send(response, {200, {{"ok", true},
+                {"data", warehouse.run(body["action"].get<std::string>(), data)}}});
+        } catch (const std::invalid_argument& error) {
+            send(response, dsa::demo_error(400, "INVALID_INPUT", error.what()));
+        } catch (const std::exception& error) {
+            send(response, dsa::demo_error(500, "SERVER_ERROR", error.what()));
+        }
     });
 
     server.Get("/api/modules", [](const httplib::Request&, httplib::Response& response) {

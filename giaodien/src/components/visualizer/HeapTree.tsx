@@ -1,4 +1,5 @@
 import type { HeapNodeView } from "@/core/types";
+import { priorityLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const toneByPriority: Record<string, string> = {
@@ -46,11 +47,12 @@ export function HeapTree({
                     Tiếp theo
                   </p>
                 ) : null}
-                <p className="font-mono text-xs font-semibold tnum">
-                  {node.orderCode.replace("ORD-2026-", "…")}
+                <p className="truncate font-mono text-xs font-semibold tnum" title={node.orderCode}>
+                  {node.orderCode}
                 </p>
                 <p className="text-[11px] text-muted-foreground tnum">
-                  ưu tiên {node.priorityValue} • thứ tự {node.sequenceNumber}
+                  {priorityLabel[node.priority as keyof typeof priorityLabel] ?? node.priority} • STT{" "}
+                  {node.sequenceNumber}
                 </p>
               </div>
             ))}

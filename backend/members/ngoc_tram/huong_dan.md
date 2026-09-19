@@ -31,6 +31,17 @@ Tìm vị trí bằng bảng băm, không quét danh sách. `touch` dự kiến 
 snapshot O(k) với k là số phần tử giữ lại. Sau mọi thay đổi, hai chiều liên kết và chỉ mục phải khớp.
 Chỉ giữ tham chiếu/iterator theo đúng hiệu lực của cách cài đặt, nhất là sau khi xóa nút.
 
+## Lập luận Q1–Q4 cho TP3
+
+1. **Có cần giữ thứ tự không?** Có. Phần tử mới cập nhật nằm ở đầu, phần tử cũ nhất nằm cuối
+   và bị loại khi danh sách vượt giới hạn.
+2. **Khóa và kiểu tải là gì?** SKU là khóa để nhận biết sản phẩm đã có. Tải chính là cập nhật
+   lặp lại, đưa nút lên đầu và đôi lúc xóa nút cuối.
+3. **Có chấp nhận trường hợp xấu nhất không?** Cần thao tác ổn định vì cập nhật kho xảy ra thường xuyên.
+   Bảng băm tìm nút trung bình O(1), danh sách liên kết đôi tháo và gắn nút O(1).
+4. **Yếu tố thực tế nào quan trọng?** Danh sách có dung lượng nhỏ cố định. Đổi lại một bảng băm
+   phụ giúp tránh quét danh sách và bảo đảm mỗi SKU chỉ xuất hiện một lần.
+
 ## Kịch bản demo cần cài
 
 Đầu vào cho `run_demo`:
@@ -70,9 +81,17 @@ Module và demo nằm trong thư mục `ngoc_tram`. Test riêng đặt trong th�
 `ngoc_tram/kiem_thu/`, không include vào demo. Kiểm thử tích hợp dùng nhiều module
 thì đặt tại `backend/kiem_thu/` để cả nhóm cùng sửa, không để riêng trong module TP3.
 
+## Nhật ký debug
+
+| Đầu vào gây lỗi | Nguyên nhân | Cách sửa | Kết quả chạy lại |
+| --- | --- | --- | --- |
+| `stock_after=-1` | Demo mới kiểm tra phạm vi `int`, chưa chặn tồn kho âm | Kiểm tra `stock_after < 0` và ném `invalid_argument` | Backend trả lỗi 400 đúng quy ước |
+| Cập nhật `B` hai lần | Có nguy cơ tạo hai nút hoặc giữ dữ liệu cũ | Dùng bảng băm tìm nút, ghi đè payload rồi đưa nút lên đầu | Test giữ đúng một `B` với dữ liệu mới |
+| Thêm quá capacity | Nút cuối và khóa băm có thể lệch nhau | `evict_tail` xóa cả liên kết, khóa băm và vùng nhớ | Test capacity 1/2 và lặp 10.000 lần đều đạt |
+
 ## Bàn giao
 
 - Module, demo, test riêng và bảng test tích hợp có trạng thái đạt/chưa đạt cụ thể.
-- Viết phần lập luận TP3 theo Q1–Q4 mục 2 của Plan; giải thích vì sao cần DLL kèm bảng băm.
-- Nhật ký debug ghi đầu vào gây lỗi, nguyên nhân, cách sửa và kết quả chạy lại.
+- Đưa phần Q1–Q4 phía trên vào báo cáo; giải thích vì sao cần DLL kèm bảng băm.
+- Bổ sung nhật ký debug khi phát hiện lỗi mới theo đúng bốn cột đã dùng ở trên.
 - Gửi Khang số liệu đo thật; lưu nhật ký dùng công cụ theo yêu cầu của môn.

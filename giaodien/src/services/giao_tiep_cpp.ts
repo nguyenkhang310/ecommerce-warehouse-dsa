@@ -25,7 +25,7 @@ async function request(path: string, init?: RequestInit) {
     throw new Error("Không kết nối được C++ hoặc yêu cầu quá 60 giây. Kiểm tra terminal backend.");
   }
   if (response.headers.get("X-DSA-Runtime") !== "C++") {
-    throw new Error("Chưa nhận được phản hồi C++. Chạy npm run backend:start tại thư mục gốc.");
+    throw new Error("Chưa nhận được phản hồi C++. Chạy npm run dev tại thư mục gốc.");
   }
   return response;
 }
@@ -43,7 +43,6 @@ export const cppApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
     });
-    // Giữ nguyên 501 để hiển thị TODO, không thay bằng kết quả mô phỏng.
     return { status: response.status, body: await response.json() };
   },
 };

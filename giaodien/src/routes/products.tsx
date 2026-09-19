@@ -2,12 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Database,
   Download,
   MoreHorizontal,
   PackagePlus,
   PackageSearch,
   Search,
-  Upload,
   Warehouse,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -56,8 +56,9 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ComplexityChip, StockStatusBadge } from "@/components/common/badges";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/common/states";
+import { Pagination } from "@/components/common/Pagination";
 import { WhyPopover } from "@/components/common/WhyPopover";
-import { inventoryApi } from "@/services/mockApiAdapter";
+import { inventoryApi } from "@/services/api";
 import { formatDateTime, formatMs, formatNumber, relativeTime, statusLabel } from "@/lib/format";
 import type { Product, StockMovement } from "@/core/types";
 
@@ -196,7 +197,7 @@ function SmartSearch({ onSelect }: { onSelect: (sku: string) => void }) {
               }
             }}
             className="h-11 pl-9 text-base"
-            placeholder="Nhập SKU hoặc tên sản phẩm, ví dụ: LAP hoặc Bàn ph…"
+            placeholder="Nhập SKU hoặc tên, ví dụ: LAP, KEY, Bàn phím…"
             aria-label="Tìm sản phẩm"
             aria-expanded={open}
           />
@@ -268,7 +269,11 @@ function SmartSearch({ onSelect }: { onSelect: (sku: string) => void }) {
           structure={isExact ? "Bảng băm" : "Cây tiền tố"}
           comparisonKey={isExact ? "băm(SKU) → ngăn" : "đường dẫn tiền tố → cây con"}
           complexity={isExact ? "Trung bình O(1)" : "O(k + m)"}
-          explanation="Kết quả được trả từ tầng lõi DSA."
+          explanation={
+            isExact
+              ? "Tra cứu trực tiếp theo SKU trong bảng băm."
+              : "Duyệt theo từng ký tự tiền tố, không quét toàn bộ."
+          }
         />
       </div>
     </section>
@@ -331,7 +336,7 @@ function StockDialog({
               }}
               aria-invalid={Boolean(error)}
             />
-            <p className="text-xs text-muted-foreground">Số dương: nhập · Số âm: xuất.</p>
+            <p className="text-xs text-muted-foreground">Số dương là nhập kho · Số âm là xuất kho.</p>
             {error ? <p className="text-xs font-medium text-destructive">{error}</p> : null}
           </div>
           <div className="space-y-1.5">
@@ -512,6 +517,32 @@ function ProductsPage() {
   const rows = products.data ?? [];
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const pageRows = rows.slice((page - 1) * pageSize, page * pageSize);
+  const exportProducts = () => {
+    const exported = selected.length ? rows.filter((product) => selected.includes(product.sku)) : rows;
+    const quote = (value: string | number) => `"${String(value).replaceAll('"', '""')}"`;
+    const contents = [
+      "sku,name,category,stock,reorder_level,status",
+      ...exported.map((product) =>
+        [
+          product.sku,
+          product.name,
+          product.category,
+          product.stock,
+          product.reorderLevel,
+          product.status,
+        ]
+          .map(quote)
+          .join(","),
+      ),
+    ].join("\n");
+    const url = URL.createObjectURL(new Blob([contents], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "san_pham.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Đã xuất ${exported.length} dòng ra tệp CSV.`);
+  };
 
   return (
     <div className="space-y-6">
@@ -526,8 +557,8 @@ function ProductsPage() {
             </Button>
             <Button variant="outline" asChild className="hidden gap-1.5 sm:inline-flex">
               <Link to="/system">
-                <Upload className="h-4 w-4" aria-hidden />
-                Nhập dữ liệu
+                <Database className="h-4 w-4" aria-hidden />
+                Nguồn dữ liệu
               </Link>
             </Button>
             <Button
@@ -549,8 +580,8 @@ function ProductsPage() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
                   <Link to="/system">
-                    <Upload className="h-4 w-4" aria-hidden />
-                    Nhập dữ liệu
+                    <Database className="h-4 w-4" aria-hidden />
+                    Nguồn dữ liệu
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -629,11 +660,7 @@ function ProductsPage() {
               variant="outline"
               size="sm"
               className="gap-1.5"
-              onClick={() =>
-                toast.success(
-                  `Đã xuất ${selected.length || rows.length} dòng ra tệp CSV (mô phỏng).`,
-                )
-              }
+              onClick={exportProducts}
             >
               <Download className="h-4 w-4" aria-hidden />
               Xuất danh sách
@@ -654,10 +681,10 @@ function ProductsPage() {
             <EmptyState
               icon={PackageSearch}
               title="Chưa có sản phẩm nào khớp bộ lọc"
-              description="Đổi bộ lọc hoặc nhập dữ liệu."
+              description="Đổi bộ lọc hoặc xem lại nguồn dữ liệu."
               action={
                 <Button asChild>
-                  <a href="/system">Nhập dữ liệu</a>
+                  <Link to="/system">Mở dữ liệu & hệ thống</Link>
                 </Button>
               }
             />
@@ -721,7 +748,7 @@ function ProductsPage() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" aria-label={`Thao tác với ${p.sku}`}>
-                              ⋯
+                              <MoreHorizontal className="h-4 w-4" aria-hidden />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -760,37 +787,16 @@ function ProductsPage() {
               ))}
             </ul>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4 text-sm">
-              <p className="text-muted-foreground tnum">
-                Hiển thị {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, rows.length)} /{" "}
-                {rows.length} sản phẩm
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  Trước
-                </Button>
-                <span className="text-xs text-muted-foreground tnum">
-                  Trang {page}/{pageCount}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-                  disabled={page === pageCount}
-                >
-                  Sau
-                </Button>
-              </div>
-            </div>
-            <p className="border-t border-border px-4 py-2 text-xs text-muted-foreground">
-              Sắp xếp/lọc ở bảng chỉ thay đổi cách trình bày trên tập dữ liệu do tầng lõi trả về,
-              không thay thế thuật toán của tầng lõi.
-            </p>
+            <Pagination
+              from={(page - 1) * pageSize + 1}
+              to={Math.min(page * pageSize, rows.length)}
+              total={rows.length}
+              unit="sản phẩm"
+              page={page}
+              pageCount={pageCount}
+              onPrev={() => setPage((p) => Math.max(1, p - 1))}
+              onNext={() => setPage((p) => Math.min(pageCount, p + 1))}
+            />
           </>
         )}
       </section>
@@ -832,23 +838,10 @@ function ProductsPage() {
                 </div>
 
                 <div className="rounded-lg border border-primary/25 bg-primary/5 p-3">
-                  <p className="text-sm font-semibold">Tra cứu bằng DSA</p>
-                  <dl className="mt-2 space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <dt className="text-muted-foreground">Ngăn băm</dt>
-                      <dd className="font-mono tnum">
-                        #{(detail.data.product.sku.length * 7) % 64}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-muted-foreground">Số phép so sánh</dt>
-                      <dd className="font-mono tnum">1</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-muted-foreground">Độ phức tạp</dt>
-                      <dd className="font-mono">Trung bình O(1)</dd>
-                    </div>
-                  </dl>
+                  <p className="text-sm font-semibold">Tra cứu bằng bảng băm</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Tra cứu trực tiếp theo SKU • Trung bình O(1)
+                  </p>
                 </div>
 
                 <div>
@@ -887,7 +880,13 @@ function ProductsPage() {
                   )}
                 </div>
 
-                <Button className="w-full" onClick={() => setStockTarget(detail.data.product)}>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setDetailSku(null);
+                    setStockTarget(detail.data.product);
+                  }}
+                >
                   Điều chỉnh tồn kho
                 </Button>
                 <p className="text-xs text-muted-foreground">

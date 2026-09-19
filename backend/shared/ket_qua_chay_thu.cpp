@@ -1,7 +1,6 @@
 #ifndef DSA_SHARED_KET_QUA_CHAY_THU_CPP
 #define DSA_SHARED_KET_QUA_CHAY_THU_CPP
 
-#include "bao_loi.cpp"
 #include <json.hpp>
 #include <exception>
 #include <string>
@@ -28,11 +27,6 @@ inline DemoResult execute_demo(const std::string& member, const Json& input, Dem
     }
     try {
         return {200, {{"ok", true}, {"member", member}, {"result", handler(input)}}};
-    } catch (const NotImplemented& error) {
-        auto result = demo_error(501, "NOT_IMPLEMENTED", error.what(), member);
-        result.body["error"]["owner"] = error.owner;
-        result.body["error"]["task"] = error.task;
-        return result;
     } catch (const Json::exception& error) {
         return demo_error(400, "INVALID_INPUT", error.what(), member);
     } catch (const std::invalid_argument& error) {

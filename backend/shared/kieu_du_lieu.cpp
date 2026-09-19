@@ -51,6 +51,17 @@ struct RecentUpdate {
     std::string updated_at;
 };
 
+struct StockMovement {
+    std::string id;
+    std::string product_id;
+    std::string sku;
+    int delta = 0;
+    int stock_after = 0;
+    std::string reason;
+    std::string note;
+    std::string created_at;
+};
+
 // Dữ liệu thô để đọc/ghi; các chỉ mục tra cứu do từng thành viên cài đặt.
 struct StorageData {
     std::vector<Product> products;
@@ -61,6 +72,7 @@ struct BenchmarkPoint {
     std::string operation;
     std::size_t dataset_size = 0;
     std::size_t iterations = 0;
+    double preparation_ms = 0;
     double dsa_mean_ms = 0;
     double baseline_mean_ms = 0;
     std::string measured_at;

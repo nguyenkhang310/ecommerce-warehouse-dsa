@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Boxes, Clock, Eye, Layers, Zap } from "lucide-react";
+import { ArrowRight, Boxes, Clock, Eye, Layers, PackageCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
 import { PriorityBadge } from "@/components/common/badges";
 import { WhyPopover } from "@/components/common/WhyPopover";
 import { LoadingBlock, EmptyState, ErrorState } from "@/components/common/states";
-import { orderApi } from "@/services/mockApiAdapter";
+import { orderApi } from "@/services/api";
 import { formatDateTime, relativeTime } from "@/lib/format";
 
 export function NextOrderCard({
@@ -39,7 +39,7 @@ export function NextOrderCard({
     mutationFn: () => orderApi.extractNext(),
     onSuccess: (order) => {
       if (!order) return;
-      setHeapNote(`Đã loại ${order.orderCode} và vun lại hàng đợi ưu tiên.`);
+      setHeapNote(`Đã xử lý ${order.orderCode}. Đơn tiếp theo đã lên đầu hàng đợi.`);
       toast.success(`Đã xử lý ${order.orderCode}`, {
         description: "Đơn tiếp theo đã sẵn sàng.",
       });
@@ -85,10 +85,10 @@ export function NextOrderCard({
           </div>
         </div>
         <WhyPopover
-          structure="Hàng đợi ưu tiên dạng cây vun đống cực đại"
-          comparisonKey="(ưu tiên giảm dần, số thứ tự tăng dần)"
-          complexity="Xem đỉnh O(1) • Lấy ra O(log n)"
-          explanation="Ưu tiên cao hơn; cùng mức thì đơn cũ hơn trước."
+          structure="Hàng đợi ưu tiên"
+          comparisonKey="Ưu tiên, số thứ tự"
+          complexity="Xem O(1) • Lấy ra O(log n)"
+          explanation="Ưu tiên cao hơn xử lý trước; cùng mức thì đơn đến trước xử lý trước."
         />
       </div>
 
@@ -102,9 +102,7 @@ export function NextOrderCard({
         </div>
         <div>
           <dt className="text-xs text-muted-foreground">Số thứ tự</dt>
-          <dd className="mt-0.5 font-mono text-sm font-semibold tnum">
-            #{String(next.sequenceNumber).padStart(6, "0")}
-          </dd>
+          <dd className="mt-0.5 font-mono text-sm font-semibold tnum">#{next.sequenceNumber}</dd>
         </div>
         <div>
           <dt className="text-xs text-muted-foreground">Số sản phẩm</dt>
@@ -114,16 +112,10 @@ export function NextOrderCard({
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Tổng SL</dt>
+          <dt className="text-xs text-muted-foreground">Tổng số lượng</dt>
           <dd className="mt-0.5 text-sm font-semibold tnum">{next.totalQuantity}</dd>
         </div>
       </dl>
-
-      <p className="mt-5 text-sm text-muted-foreground">
-        <span className="font-medium text-foreground">Ưu tiên:</span>{" "}
-        {next.priority === "urgent" ? "Gấp" : next.priority === "high" ? "Cao" : "Thường"} · đến
-        trước cùng mức
-      </p>
 
       {detailed && (second || third) ? (
         <div className="mt-4 rounded-sm border border-border bg-card/78 p-3.5">
@@ -134,18 +126,18 @@ export function NextOrderCard({
                 <span className="font-mono tnum">{o!.orderCode}</span>
                 <PriorityBadge priority={o!.priority} />
                 <span className="font-mono text-xs text-muted-foreground tnum">
-                  thứ tự #{o!.sequenceNumber}
+                  STT #{o!.sequenceNumber}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {o!.priorityValue < next.priorityValue
-                    ? "thua vì ưu tiên thấp hơn"
-                    : "xếp sau vì số thứ tự lớn hơn"}
+                    ? "chờ vì ưu tiên thấp hơn"
+                    : "chờ vì đến sau"}
                 </span>
               </li>
             ))}
           </ul>
           <p className="mt-2 text-xs text-muted-foreground">
-            Xem đỉnh để kiểm tra · Lấy ra để loại nút gốc.
+            Xem trước để kiểm tra · Xử lý để lấy đơn khỏi hàng đợi.
           </p>
         </div>
       ) : null}
@@ -162,8 +154,8 @@ export function NextOrderCard({
           disabled={extract.isPending}
           className="gap-1.5"
         >
-          <Zap className="h-4 w-4" aria-hidden />
-          {detailed ? "Lấy ra và xử lý" : "Xử lý đơn này"}
+          <PackageCheck className="h-4 w-4" aria-hidden />
+          Xử lý đơn này
         </Button>
         {detailed ? (
           <Button
@@ -171,13 +163,13 @@ export function NextOrderCard({
             className="gap-1.5"
             onClick={() => {
               void candidates.refetch();
-              toast.info(`Đỉnh hàng đợi: ${next.orderCode}`, {
-                description: "Xem nhưng không loại khỏi hàng đợi.",
+              toast.info(`Đơn tiếp theo: ${next.orderCode}`, {
+                description: "Xem nhưng không lấy khỏi hàng đợi.",
               });
             }}
           >
             <Eye className="h-4 w-4" aria-hidden />
-            Xem đỉnh
+            Xem trước
           </Button>
         ) : (
           <Button variant="outline" className="gap-1.5" onClick={onOpenHeap}>
@@ -192,7 +184,7 @@ export function NextOrderCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Xử lý đơn {next.orderCode}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Loại nút gốc khỏi hàng đợi ưu tiên và đưa đơn tiếp theo lên đầu.
+              Lấy đơn khỏi hàng đợi ưu tiên và đưa đơn tiếp theo lên đầu.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

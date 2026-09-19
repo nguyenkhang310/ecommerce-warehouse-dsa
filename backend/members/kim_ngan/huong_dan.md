@@ -50,6 +50,17 @@ Chạy từ gốc repo: `npm run demo -- kim_ngan`. Có thể truyền JSON bằ
 `npm run demo -- kim_ngan duong_dan/input.json` hoặc dán ở `/cpp`.
 Sau khi sửa C++, build/start lại backend để web dùng bản mới.
 
+## Lập luận Q1–Q4 cho TP2
+
+1. **Có cần giữ thứ tự không?** Không cần sắp toàn bộ sản phẩm, nhưng phải giữ đúng đường đi
+   của từng ký tự để tìm được mọi từ bắt đầu bằng tiền tố.
+2. **Khóa và kiểu tải là gì?** Khóa là SKU hoặc tên sản phẩm. Thao tác chính là thêm lúc nạp
+   dữ liệu và tìm nhiều lần theo tiền tố; xóa ít hơn khi sản phẩm ngừng kinh doanh.
+3. **Có chấp nhận trường hợp xấu nhất không?** Có. Tìm đường đi tốn O(p) với p là độ dài tiền tố,
+   sau đó còn phải duyệt cây con và trả các kết quả phù hợp.
+4. **Yếu tố thực tế nào quan trọng?** Trie tốn nhiều bộ nhớ vì mỗi nút giữ các nhánh ký tự.
+   Nhóm chấp nhận chi phí này ở quy mô 10.000 sản phẩm để đổi lấy tìm tiền tố trực tiếp.
+
 ## Các ca phải kiểm thử
 
 | Ca thử | Kết quả cần kiểm tra |
@@ -65,9 +76,16 @@ Sau khi sửa C++, build/start lại backend để web dùng bản mới.
 Nạp `sku` và `name` từ `backend/data/data_chinh/san_pham.csv` khi loader của Trang xong.
 Test riêng có `main()` đặt trong `kiem_thu/`, không include vào `chay_thu.cpp`.
 
+Chạy test từ gốc repo:
+
+```powershell
+g++ -std=c++17 -Wall -Wextra -Wpedantic -I backend backend/members/kim_ngan/kiem_thu/kiem_tra.cpp -o backend/build/kiem_tra_kim_ngan.exe
+./backend/build/kiem_tra_kim_ngan.exe
+```
+
 ## Bàn giao
 
 - Test, demo thật, mô tả chuẩn hóa chuỗi và cách xử lý cặp trùng/xóa nhánh dùng chung.
 - Nếu dùng con trỏ: ghi cách hủy cây, tránh sao chép gây giải phóng hai lần.
-- Viết Q1–Q4 của TP2 theo mục 2 của Plan, giải thích chi phí duyệt cây con và bộ nhớ.
+- Đưa phần Q1–Q4 phía trên vào báo cáo, giải thích chi phí duyệt cây con và bộ nhớ.
 - Chuẩn bị ví dụ vẽ từng bước; ghi debug, kết quả kiểm thử và nhật ký dùng công cụ.

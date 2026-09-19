@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, CircleSlash, Flame, Gauge, Timer } from "lucide-react";
+import { CheckCircle2, ChevronsUp, CircleSlash, Flame, Minus, TriangleAlert } from "lucide-react";
 import type { Priority, StockStatus } from "@/core/types";
 import { priorityLabel, statusLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -6,23 +6,23 @@ import { cn } from "@/lib/utils";
 export function PriorityBadge({ priority, className }: { priority: Priority; className?: string }) {
   const map = {
     urgent: {
-      cls: "border-[#ff3b30]/18 bg-gradient-to-b from-[#ff3b30]/12 to-[#ff3b30]/7 text-[#d70015]",
+      cls: "border-red-200 bg-red-50 text-red-700",
       Icon: Flame,
     },
     high: {
-      cls: "border-[#ff9f0a]/20 bg-gradient-to-b from-[#ffcc00]/14 to-[#ff9f0a]/8 text-[#b25000]",
-      Icon: Gauge,
+      cls: "border-amber-200 bg-amber-50 text-amber-700",
+      Icon: ChevronsUp,
     },
     normal: {
-      cls: "border-slate-300/55 bg-gradient-to-b from-white/76 to-slate-100/65 text-slate-600",
-      Icon: Timer,
+      cls: "border-slate-200 bg-slate-100 text-slate-600",
+      Icon: Minus,
     },
   } as const;
   const { cls, Icon } = map[priority];
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-[0_4px_12px_rgba(28,54,78,0.06),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-md",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
         cls,
         className,
       )}
@@ -36,15 +36,15 @@ export function PriorityBadge({ priority, className }: { priority: Priority; cla
 export function StockStatusBadge({ status }: { status: StockStatus }) {
   const map = {
     in_stock: {
-      cls: "border-[#34c759]/20 bg-[#34c759]/11 text-[#16843a]",
+      cls: "border-green-200 bg-green-50 text-green-700",
       Icon: CheckCircle2,
     },
     low_stock: {
-      cls: "border-[#ff9f0a]/20 bg-[#ff9f0a]/10 text-[#b25000]",
-      Icon: AlertTriangle,
+      cls: "border-amber-200 bg-amber-50 text-amber-700",
+      Icon: TriangleAlert,
     },
     out_of_stock: {
-      cls: "border-[#ff3b30]/18 bg-[#ff3b30]/10 text-[#d70015]",
+      cls: "border-red-200 bg-red-50 text-red-700",
       Icon: CircleSlash,
     },
   } as const;
@@ -52,7 +52,7 @@ export function StockStatusBadge({ status }: { status: StockStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] backdrop-blur-md",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
         cls,
       )}
     >

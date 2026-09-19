@@ -33,9 +33,9 @@ export const DEMO_STEPS: DemoStep[] = [
     description: "Lấy đơn ưu tiên nhất khỏi hàng đợi.",
   },
   {
-    title: "Xem kết quả đo hiệu năng",
+    title: "Đánh giá hiệu năng",
     route: "/performance",
-    description: "So sánh DSA với quét tuyến tính.",
+    description: "So sánh giải pháp DSA với duyệt tuyến tính.",
   },
 ];
 

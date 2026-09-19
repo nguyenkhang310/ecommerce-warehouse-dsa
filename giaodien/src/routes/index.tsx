@@ -3,9 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   ArrowRight,
-  Binary,
   Boxes,
   Hash,
+  History,
   Layers,
   ListTree,
   PackagePlus,
@@ -47,8 +47,8 @@ import { ComplexityChip, PriorityBadge } from "@/components/common/badges";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/common/states";
 import { WhyPopover } from "@/components/common/WhyPopover";
 import { useDefenseMode } from "@/context/defense-mode";
-import { benchmarkApi, inventoryApi, orderApi } from "@/services/mockApiAdapter";
-import { formatNumber, operationLabel, relativeTime } from "@/lib/format";
+import { benchmarkApi, inventoryApi, orderApi } from "@/services/api";
+import { formatNumber, relativeTime } from "@/lib/format";
 import type { BenchmarkPoint } from "@/core/types";
 
 export const Route = createFileRoute("/")({
@@ -98,7 +98,7 @@ function KpiCard({
           </Tooltip>
           <p className="mt-2 text-[28px] font-normal leading-none tnum sm:text-[32px]">{value}</p>
         </div>
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-sky-200/65 bg-sky-50/82 text-[#0878b8] shadow-[0_4px_12px_rgba(8,120,184,0.06)] backdrop-blur-md">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-sky-200 bg-sky-50 text-[#0878b8]">
           <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
         </span>
       </div>
@@ -154,7 +154,7 @@ function DashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title="Tổng quan kho & đơn hàng"
-        description="Tồn kho, đơn chờ và cấu trúc dữ liệu."
+        description="Tổng quan tồn kho, đơn chờ xử lý và hiệu quả các cấu trúc dữ liệu."
         actions={
           <>
             <Button onClick={() => navigate({ to: "/orders" })} className="gap-1.5">
@@ -184,7 +184,7 @@ function DashboardPage() {
             value={formatNumber(summary.data.totalProducts)}
             hint={`+${summary.data.productsAddedThisMonth} trong tháng này`}
             icon={Boxes}
-            tooltip="Số khóa trong bảng băm."
+            tooltip="Tổng số mặt hàng đang quản lý."
           />
           <KpiCard
             label="Tổng tồn kho"
@@ -196,17 +196,17 @@ function DashboardPage() {
           <KpiCard
             label="Sắp hết hàng"
             value={formatNumber(summary.data.lowStockCount)}
-            hint="Dưới hoặc bằng ngưỡng cảnh báo"
+            hint="Thấp hơn hoặc bằng ngưỡng cảnh báo"
             icon={TriangleAlert}
-            tooltip="Tồn kho dưới ngưỡng."
+            tooltip="Số mặt hàng sắp hết hàng."
             link={{ to: "/products", label: "Xem danh sách" }}
           />
           <KpiCard
             label="Đơn đang chờ"
             value={formatNumber(summary.data.pendingOrders)}
-            hint="Đang nằm trong hàng đợi ưu tiên"
+            hint="Đang chờ xử lý theo mức ưu tiên"
             icon={Layers}
-            tooltip="Số nút trong hàng đợi ưu tiên."
+            tooltip="Số đơn chưa xử lý trong hàng đợi."
             badge={`${summary.data.urgentOrders} đơn gấp`}
           />
         </div>
@@ -242,7 +242,7 @@ function DashboardPage() {
                     <div className="min-w-0">
                       <p className="truncate font-mono text-xs font-medium tnum">{o.orderCode}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground tnum">
-                        Thứ tự #{o.sequenceNumber} · {o.totalQuantity} sản phẩm
+                        STT #{o.sequenceNumber} · {o.totalQuantity} sản phẩm
                       </p>
                     </div>
                     <PriorityBadge priority={o.priority} />
@@ -256,7 +256,7 @@ function DashboardPage() {
                     <TableHead className="w-10">#</TableHead>
                     <TableHead>Mã đơn</TableHead>
                     <TableHead>Ưu tiên</TableHead>
-                    <TableHead className="text-right">Thứ tự</TableHead>
+                    <TableHead className="text-right">STT</TableHead>
                     <TableHead className="text-right">Số lượng</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -291,8 +291,8 @@ function DashboardPage() {
             <WhyPopover
               structure="Danh sách liên kết đôi + Bảng băm"
               comparisonKey="SKU → nút"
-              complexity="tra cứu O(1) • chuyển lên đầu O(1)"
-              explanation="Bản ghi mới lên đầu; quá dung lượng sẽ loại phần tử cuối."
+              complexity="O(1)"
+              explanation="Bản ghi mới được chuyển lên đầu; khi vượt dung lượng sẽ loại phần tử cuối."
             />
           </div>
           {recent.isPending ? (
@@ -354,9 +354,14 @@ function DashboardPage() {
 
         <div className="space-y-5">
           <section className="surface-card p-4" aria-labelledby="dsa-health-title">
-            <h2 id="dsa-health-title" className="text-base font-semibold">
-              Trạng thái DSA
-            </h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 id="dsa-health-title" className="text-base font-semibold">
+                Trạng thái cấu trúc dữ liệu
+              </h2>
+              <Link to="/visualizer" className="text-sm font-medium text-primary hover:underline">
+                Xem trực quan
+              </Link>
+            </div>
             {summary.isPending ? (
               <LoadingBlock rows={2} className="mt-4" />
             ) : summary.isError ? (
@@ -389,10 +394,10 @@ function DashboardPage() {
                     tone: "cyan" as const,
                   },
                   {
-                    name: "Bộ đệm gần đây",
-                    icon: Binary,
-                    primary: `${summary.data.dsaHealth.recentUsed} / ${summary.data.dsaHealth.recentCapacity} ô`,
-                    secondary: "Chuyển lên đầu",
+                    name: "Cập nhật gần đây",
+                    icon: History,
+                    primary: `${summary.data.dsaHealth.recentUsed} / ${summary.data.dsaHealth.recentCapacity} mục`,
+                    secondary: "Mới nhất lên đầu",
                     chip: "O(1)" as const,
                     tone: "emerald" as const,
                   },
@@ -406,12 +411,6 @@ function DashboardPage() {
                     <p className="truncate text-xs text-muted-foreground tnum">{card.secondary}</p>
                     <div className="mt-2 flex items-center justify-between gap-2">
                       <ComplexityChip tone={card.tone}>{card.chip}</ComplexityChip>
-                      <Link
-                        to="/visualizer"
-                        className="text-xs font-medium text-primary hover:underline"
-                      >
-                        Mô phỏng
-                      </Link>
                     </div>
                   </article>
                 ))}
@@ -422,7 +421,7 @@ function DashboardPage() {
           <section className="surface-card p-4" aria-labelledby="quick-chart-title">
             <div className="flex flex-col items-stretch gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
               <h2 id="quick-chart-title" className="text-base font-semibold">
-                DSA và duyệt tuyến tính
+                So sánh hiệu năng
               </h2>
               <Select
                 value={operation}
@@ -433,7 +432,7 @@ function DashboardPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="hash_lookup">Tra cứu theo mã</SelectItem>
-                  <SelectItem value="heap_extract">Lấy đơn tiếp theo</SelectItem>
+                  <SelectItem value="heap_extract">Lấy đơn ưu tiên</SelectItem>
                   <SelectItem value="trie_prefix">Tìm theo tiền tố</SelectItem>
                 </SelectContent>
               </Select>
@@ -466,7 +465,7 @@ function DashboardPage() {
                       />
                       <Legend wrapperStyle={{ fontSize: 12 }} />
                       <Line
-                        name="Cấu trúc đã chọn"
+                        name="Giải pháp DSA"
                         type="monotone"
                         dataKey="dsa"
                         stroke="var(--color-primary)"
@@ -486,13 +485,14 @@ function DashboardPage() {
                   </ResponsiveContainer>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  {operationLabel[operation]} • Dữ liệu mô phỏng.
+                  Đường liền là giải pháp DSA, đường đứt nét là duyệt tuyến tính. Số liệu đo từ
+                  backend C++.
                 </p>
                 <Link
                   to="/performance"
                   className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
                 >
-                  Mở trang Hiệu năng
+                  Mở trang đánh giá hiệu năng
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
               </>

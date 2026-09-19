@@ -60,7 +60,7 @@ export interface BenchmarkPoint {
   medianMs?: number;
   p95Ms?: number;
   measuredAt: string;
-  mode: "mock" | "live";
+  mode: "live";
 }
 
 export interface RecentUpdate {
@@ -154,7 +154,7 @@ export interface TrieSnapshot {
 export interface HealthStatus {
   coreApiUrl: string;
   connected: boolean;
-  mode: "mock" | "live";
+  mode: "live";
   storageType: string;
   lastLoadAt: string;
   productCount: number;

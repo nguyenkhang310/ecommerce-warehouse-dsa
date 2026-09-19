@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Search, Sparkles } from "lucide-react";
+import { ArrowLeftRight, ChevronLeft, ChevronRight, HelpCircle, Pause, Play, RotateCcw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,21 +26,21 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { ComplexityChip } from "@/components/common/badges";
 import { ErrorState, LoadingBlock } from "@/components/common/states";
 import { HeapTree } from "@/components/visualizer/HeapTree";
-import { inventoryApi, orderApi, visualizerApi } from "@/services/mockApiAdapter";
-import { formatMs, formatNumber } from "@/lib/format";
+import { inventoryApi, orderApi, visualizerApi } from "@/services/api";
+import { formatMs, formatNumber, randomOrderCode } from "@/lib/format";
 
 export const Route = createFileRoute("/visualizer")({
   head: () => ({
     meta: [
-      { title: "Mô phỏng DSA — Quản lý kho" },
+      { title: "Trực quan DSA — Quản lý kho" },
       {
         name: "description",
-        content: "Mô phỏng cấu trúc dữ liệu.",
+        content: "Trực quan cấu trúc dữ liệu C++.",
       },
-      { property: "og:title", content: "Mô phỏng DSA — Quản lý kho" },
+      { property: "og:title", content: "Trực quan DSA — Quản lý kho" },
       {
         property: "og:description",
-        content: "Mô phỏng bốn cấu trúc dữ liệu.",
+        content: "Trực quan bốn cấu trúc dữ liệu C++.",
       },
     ],
   }),
@@ -51,10 +51,10 @@ function Legend() {
   return (
     <ul className="flex flex-wrap gap-3 text-xs text-muted-foreground">
       {[
-        ["bg-card border-border", "Nút thông thường"],
-        ["bg-primary/15 border-primary", "Nút hiện tại"],
-        ["bg-accent/20 border-accent", "Nút đang so sánh"],
-        ["bg-success/15 border-success", "Nút kết thúc từ / kết quả"],
+        ["bg-card border-border", "Thường"],
+        ["bg-primary/15 border-primary", "Hiện tại"],
+        ["bg-accent/20 border-accent", "Đang so sánh"],
+        ["bg-success/15 border-success", "Kết quả"],
       ].map(([cls, label]) => (
         <li key={label} className="flex items-center gap-1.5">
           <span className={`inline-block h-3 w-3 rounded border ${cls}`} aria-hidden />
@@ -95,7 +95,7 @@ function DefenseExplain({
   return (
     <>
       <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setOpen(true)}>
-        <Sparkles className="h-4 w-4" aria-hidden />
+        <HelpCircle className="h-4 w-4" aria-hidden />
         Giải thích như khi bảo vệ
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -129,14 +129,14 @@ function DefenseExplain({
 /* ------------------------------ Hash tab ------------------------------ */
 
 function HashTab() {
-  const [input, setInput] = useState("LAP-DELL-5420");
+  const [input, setInput] = useState("PRD-CMCX-R837344");
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
 
   const buckets = useQuery({
-    queryKey: ["hash-buckets"],
-    queryFn: () => visualizerApi.getHashSnapshot(24),
+    queryKey: ["hash-buckets", input],
+    queryFn: () => visualizerApi.getHashSnapshot(24, input),
   });
   const lookup = useQuery({
     queryKey: ["hash-lookup", input],
@@ -247,6 +247,7 @@ function HashTab() {
       </div>
 
       <div className="surface-card p-4">
+        <p className="mb-2 text-xs text-muted-foreground">Chỉ hiển thị 24 ngăn đầu.</p>
         {buckets.isPending ? (
           <LoadingBlock rows={6} />
         ) : buckets.isError ? (
@@ -329,12 +330,12 @@ function HeapTab() {
   const insert = useMutation({
     mutationFn: () =>
       orderApi.enqueue({
-        orderCode: `ORD-2026-${Math.floor(8500 + Math.random() * 400)}`,
+        orderCode: randomOrderCode(),
         priority: Math.random() > 0.6 ? "urgent" : "normal",
-        items: [{ sku: "KEY-LOGI-K380", quantity: 2 }],
+        items: [{ sku: "PRD-CMCX-R837344", quantity: 2 }],
       }),
     onSuccess: (o) => {
-      setNote(`Đã chèn ${o.orderCode} và vun lên. O(log n).`);
+      setNote(`Đã thêm ${o.orderCode} vào hàng đợi. O(log n).`);
       void qc.invalidateQueries();
     },
   });
@@ -342,7 +343,7 @@ function HeapTab() {
   const extract = useMutation({
     mutationFn: () => orderApi.extractNext(),
     onSuccess: (o) => {
-      if (o) setNote(`Đã lấy ${o.orderCode} và vun xuống. O(log n).`);
+      if (o) setNote(`Đã lấy ${o.orderCode} khỏi hàng đợi. O(log n).`);
       void qc.invalidateQueries();
     },
   });
@@ -365,12 +366,12 @@ function HeapTab() {
             variant="outline"
             onClick={() => {
               const root = heap.data?.nodes[0];
-              toast.info(root ? `Đỉnh hàng đợi: ${root.orderCode}` : "Hàng đợi trống", {
-                description: "Xem nhưng không loại khỏi hàng đợi.",
+              toast.info(root ? `Đơn tiếp theo: ${root.orderCode}` : "Hàng đợi trống", {
+                description: "Xem nhưng không lấy khỏi hàng đợi.",
               });
             }}
           >
-            Xem đỉnh
+            Xem trước
           </Button>
           <Button variant="outline" onClick={() => extract.mutate()} disabled={extract.isPending}>
             Lấy khỏi hàng đợi
@@ -394,13 +395,11 @@ function HeapTab() {
         </ol>
         <div className="rounded-lg border border-border p-3 text-sm">
           <p className="text-xs font-semibold text-muted-foreground uppercase">
-            Ví dụ đến trước xử lý trước cùng mức Gấp
+            Ví dụ cùng mức Gấp: đến trước xử lý trước
           </p>
-          <p className="mt-1 font-mono text-xs tnum">
-            ORD-2026-08341 • ưu tiên 3 • thứ tự 3281 → được chọn
-          </p>
+          <p className="mt-1 font-mono text-xs tnum">ORD-A9GBX • Gấp • STT 4 → được chọn</p>
           <p className="font-mono text-xs text-muted-foreground tnum">
-            ORD-2026-08342 • ưu tiên 3 • thứ tự 3282
+            ORD-MEYCU • Gấp • STT 64413 → chờ vì đến sau
           </p>
         </div>
         <Pseudocode
@@ -412,14 +411,14 @@ function HeapTab() {
           active={0}
         />
         <div className="flex flex-wrap gap-2">
-          <ComplexityChip tone="emerald">Xem đỉnh O(1)</ComplexityChip>
+          <ComplexityChip tone="emerald">Xem O(1)</ComplexityChip>
           <ComplexityChip>Chèn O(log n)</ComplexityChip>
           <ComplexityChip>Lấy ra O(log n)</ComplexityChip>
         </div>
         <DefenseExplain
           problem="Lấy đơn ưu tiên và giữ nguyên thứ tự đến trước."
-          why="Nút gốc là đơn ưu tiên nhất; cập nhật O(log n)."
-          complexity="Xem đỉnh O(1), chèn O(log n), lấy ra O(log n)."
+          why="Đơn đầu hàng đợi là đơn ưu tiên nhất; cập nhật O(log n)."
+          complexity="Xem O(1), chèn O(log n), lấy ra O(log n)."
         />
       </div>
     </div>
@@ -429,7 +428,7 @@ function HeapTab() {
 /* ------------------------------ Trie tab ------------------------------ */
 
 function TrieTab() {
-  const [prefix, setPrefix] = useState("lap");
+  const [prefix, setPrefix] = useState("prd");
   const [field, setField] = useState<"sku" | "name">("sku");
   const snapshot = useQuery({
     queryKey: ["trie", prefix, field],
@@ -560,12 +559,12 @@ function RecentTab() {
     queryKey: ["products", "all", "all"],
     queryFn: () => inventoryApi.getProducts({}),
   });
-  const [sku, setSku] = useState("STO-SAM-990P");
+  const [sku, setSku] = useState("PRD-CMCX-R837344");
   const [note, setNote] = useState<string | null>(null);
 
   const update = useMutation({
     mutationFn: () =>
-      inventoryApi.updateStock(sku, { delta: 10, reason: "inbound", note: "Từ mô phỏng DSA" }),
+      inventoryApi.updateStock(sku, { delta: 10, reason: "inbound", note: "Cập nhật từ giao diện" }),
     onSuccess: (res) => {
       setNote(
         res.movedToFront
@@ -607,9 +606,10 @@ function RecentTab() {
                       </p>
                     </div>
                     {i < items.length - 1 ? (
-                      <span className="text-muted-foreground" aria-hidden>
-                        ⇄
-                      </span>
+                      <ArrowLeftRight
+                        className="h-4 w-4 shrink-0 text-muted-foreground"
+                        aria-hidden
+                      />
                     ) : null}
                   </div>
                 ))}
@@ -666,9 +666,7 @@ function RecentTab() {
           </p>
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <ComplexityChip tone="emerald">tra cứu O(1)</ComplexityChip>
-          <ComplexityChip tone="emerald">chuyển lên đầu O(1)</ComplexityChip>
-          <ComplexityChip tone="emerald">xóa cuối O(1)</ComplexityChip>
+          <ComplexityChip tone="emerald">Mọi thao tác O(1)</ComplexityChip>
         </div>
         <DefenseExplain
           problem="Xem sản phẩm vừa cập nhật (TP3)."
@@ -696,8 +694,8 @@ function VisualizerPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Mô phỏng DSA"
-        description="Mô phỏng bốn cấu trúc dữ liệu."
+        title="Trực quan DSA"
+        description="Dữ liệu lấy trực tiếp từ bốn cấu trúc C++."
         actions={
           <Button
             variant={auto ? "default" : "outline"}

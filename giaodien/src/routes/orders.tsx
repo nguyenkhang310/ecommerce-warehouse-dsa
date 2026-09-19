@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Info, ListPlus, Plus, Trash2 } from "lucide-react";
+import { Info, ListPlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,20 +37,13 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { NextOrderCard } from "@/components/dashboard/NextOrderCard";
 import { PriorityBadge } from "@/components/common/badges";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/common/states";
+import { Pagination } from "@/components/common/Pagination";
 import { HeapTree } from "@/components/visualizer/HeapTree";
-import { inventoryApi, orderApi } from "@/services/mockApiAdapter";
-import { formatDateTime, waitingTime } from "@/lib/format";
+import { inventoryApi, orderApi } from "@/services/api";
+import { formatDateTime, randomOrderCode, waitingTime } from "@/lib/format";
 import type { Priority } from "@/core/types";
 
-const sourceLabel = (source: string) =>
-  ({
-    hash_table: "Bảng băm",
-    priority_heap: "Hàng đợi ưu tiên",
-    recent_list: "Danh sách gần đây",
-    benchmark: "Đo hiệu năng",
-    storage: "Lưu trữ",
-    core: "Tầng lõi",
-  })[source] ?? source;
+const PAGE_SIZE = 50;
 
 export const Route = createFileRoute("/orders")({
   head: () => ({
@@ -80,7 +73,7 @@ function CreateOrderDialog({
   onCreated: (code: string) => void;
 }) {
   const qc = useQueryClient();
-  const [code, setCode] = useState(`ORD-2026-${Math.floor(8400 + Math.random() * 99)}`);
+  const [code, setCode] = useState(randomOrderCode);
   const [priority, setPriority] = useState<Priority>("high");
   const [note, setNote] = useState("");
   const [items, setItems] = useState<{ sku: string; quantity: number }[]>([]);
@@ -160,7 +153,7 @@ function CreateOrderDialog({
               id="oitem"
               value={term}
               onChange={(e) => setTerm(e.target.value)}
-              placeholder="Gõ LAP, KEY, Bàn ph…"
+              placeholder="Gõ LAP, KEY, Bàn phím…"
             />
             {term.trim() ? (
               <div className="max-h-40 overflow-auto rounded-lg border border-border">
@@ -255,6 +248,7 @@ function OrdersPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [filter, setFilter] = useState<Priority | "all">("all");
   const [highlight, setHighlight] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const summary = useQuery({
     queryKey: ["queue-summary"],
@@ -265,10 +259,12 @@ function OrdersPage() {
     queryFn: () => orderApi.getQueue({ priority: filter }),
   });
   const heap = useQuery({ queryKey: ["heap"], queryFn: () => orderApi.getHeapSnapshot() });
-  const log = useQuery({ queryKey: ["op-log"], queryFn: () => orderApi.getOperationLog() });
 
   const total =
     (summary.data?.urgent ?? 0) + (summary.data?.high ?? 0) + (summary.data?.normal ?? 0);
+  const orders = queue.data ?? [];
+  const pageCount = Math.max(1, Math.ceil(orders.length / PAGE_SIZE));
+  const pageRows = orders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -313,15 +309,20 @@ function OrdersPage() {
       <NextOrderCard detailed />
 
       <Tabs defaultValue="list" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 sm:inline-flex sm:w-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:inline-flex sm:w-auto">
           <TabsTrigger value="list">Danh sách vận hành</TabsTrigger>
           <TabsTrigger value="tree">Cây hàng đợi</TabsTrigger>
-          <TabsTrigger value="log">Nhật ký thao tác</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
-            <Select value={filter} onValueChange={(v) => setFilter(v as Priority | "all")}>
+            <Select
+              value={filter}
+              onValueChange={(v) => {
+                setFilter(v as Priority | "all");
+                setPage(1);
+              }}
+            >
               <SelectTrigger className="w-full sm:w-[190px]" aria-label="Lọc theo mức ưu tiên">
                 <SelectValue />
               </SelectTrigger>
@@ -346,13 +347,13 @@ function OrdersPage() {
             <EmptyState
               icon={ListPlus}
               title="Hàng đợi trống"
-              description="Không có đơn phù hợp."
+              description="Chưa có đơn nào trong hàng đợi."
               action={<Button onClick={() => setCreateOpen(true)}>Thêm đơn mới</Button>}
             />
           ) : (
             <>
               <ol className="surface-card divide-y divide-border md:hidden">
-                {(queue.data ?? []).map((o, i) => (
+                {pageRows.map((o, i) => (
                   <li
                     key={o.orderCode}
                     className={`space-y-3 px-4 py-3 ${highlight === o.orderCode ? "bg-primary/10" : ""}`}
@@ -361,7 +362,7 @@ function OrdersPage() {
                       <div className="min-w-0">
                         <p className="font-mono text-sm font-semibold tnum">{o.orderCode}</p>
                         <p className="mt-1 text-xs text-muted-foreground tnum">
-                          Vị trí {i + 1} · Thứ tự #{o.sequenceNumber}
+                          Vị trí {(page - 1) * PAGE_SIZE + i + 1} · STT #{o.sequenceNumber}
                         </p>
                       </div>
                       <PriorityBadge priority={o.priority} />
@@ -389,20 +390,22 @@ function OrdersPage() {
                     <TableHead className="w-12">Vị trí</TableHead>
                     <TableHead>Mã đơn</TableHead>
                     <TableHead>Ưu tiên</TableHead>
-                    <TableHead className="text-right">Số thứ tự</TableHead>
+                    <TableHead className="text-right">STT</TableHead>
                     <TableHead>Tạo lúc</TableHead>
                     <TableHead>Thời gian chờ</TableHead>
-                    <TableHead className="text-right">Mặt hàng / SL</TableHead>
+                    <TableHead className="text-right">Mặt hàng / Số lượng</TableHead>
                     <TableHead>Trạng thái</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(queue.data ?? []).map((o, i) => (
+                  {pageRows.map((o, i) => (
                     <TableRow
                       key={o.orderCode}
                       className={highlight === o.orderCode ? "bg-primary/10" : undefined}
                     >
-                      <TableCell className="text-muted-foreground tnum">{i + 1}</TableCell>
+                      <TableCell className="text-muted-foreground tnum">
+                        {(page - 1) * PAGE_SIZE + i + 1}
+                      </TableCell>
                       <TableCell className="font-mono text-xs tnum">{o.orderCode}</TableCell>
                       <TableCell>
                         <PriorityBadge priority={o.priority} />
@@ -425,6 +428,17 @@ function OrdersPage() {
                 </TableBody>
                 </Table>
               </div>
+              <Pagination
+                from={(page - 1) * PAGE_SIZE + 1}
+                to={Math.min(page * PAGE_SIZE, orders.length)}
+                total={orders.length}
+                unit="đơn"
+                page={page}
+                pageCount={pageCount}
+                onPrev={() => setPage((current) => Math.max(1, current - 1))}
+                onNext={() => setPage((current) => Math.min(pageCount, current + 1))}
+                className="rounded-lg border border-border px-4 py-3"
+              />
             </>
           )}
         </TabsContent>
@@ -438,43 +452,10 @@ function OrdersPage() {
             <div className="surface-card p-4">
               <HeapTree nodes={heap.data!.nodes.slice(0, 15)} highlight={highlight} />
               <p className="mt-3 text-xs text-muted-foreground">
-                Hiển thị tối đa 15 nút đầu của hàng đợi ({heap.data!.size} nút). Nút gốc là đơn sẽ được
-                xử lý tiếp theo.
+                Hiển thị 15 đơn đầu hàng đợi ({heap.data!.size} đơn). Đơn đầu tiên sẽ được xử lý tiếp
+                theo.
               </p>
             </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="log">
-          {log.isPending ? (
-            <LoadingBlock rows={5} />
-          ) : (log.data ?? []).length === 0 ? (
-            <EmptyState icon={Plus} title="Chưa có thao tác nào" description="Chưa có nhật ký." />
-          ) : (
-            <ul className="surface-card divide-y divide-border">
-              {(log.data ?? []).map((e) => (
-                <li key={e.id} className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 px-4 py-3">
-                  <Badge
-                    variant="outline"
-                    className={
-                      e.level === "success"
-                        ? "border-success/40 text-success"
-                        : e.level === "warning"
-                          ? "border-warning/40 text-warning-foreground"
-                          : e.level === "error"
-                            ? "border-destructive/40 text-destructive"
-                            : ""
-                    }
-                  >
-                    {sourceLabel(e.source)}
-                  </Badge>
-                  <div className="min-w-0">
-                    <p className="text-sm">{e.message}</p>
-                    <p className="text-xs text-muted-foreground tnum">{formatDateTime(e.at)}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
           )}
         </TabsContent>
       </Tabs>

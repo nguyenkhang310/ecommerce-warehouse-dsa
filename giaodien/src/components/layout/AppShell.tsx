@@ -4,6 +4,7 @@ import {
   ChartNoAxesCombined,
   ChevronLeft,
   Database,
+  FlaskConical,
   LayoutDashboard,
   ListOrdered,
   Menu,
@@ -26,10 +27,10 @@ const NAV = [
   { label: "Tổng quan", to: "/", icon: LayoutDashboard },
   { label: "Sản phẩm", to: "/products", icon: PackageSearch },
   { label: "Hàng đợi đơn", to: "/orders", icon: ListOrdered },
-  { label: "Mô phỏng DSA", to: "/visualizer", icon: Binary },
+  { label: "Trực quan DSA", to: "/visualizer", icon: Binary },
   { label: "Hiệu năng", to: "/performance", icon: ChartNoAxesCombined },
   { label: "Dữ liệu & hệ thống", to: "/system", icon: Database },
-  { label: "Demo C++", to: "/cpp", icon: Binary },
+  { label: "Demo C++", to: "/cpp", icon: FlaskConical },
 ] as const;
 
 const MOBILE_NAV = [NAV[0], NAV[1], NAV[2], NAV[3]];
@@ -93,13 +94,13 @@ function SidebarContent({
 
       {!collapsed ? (
         <p className="relative z-10 px-5 pt-4 pb-2 text-[10px] font-semibold tracking-[0.16em] text-muted-foreground/72 uppercase">
-          Điều hướng
+          Menu
         </p>
       ) : (
         <div className="relative z-10 h-3" />
       )}
 
-      <nav className="relative z-10 flex-1 space-y-1 px-3" aria-label="Điều hướng chính">
+      <nav className="relative z-10 flex-1 space-y-1 px-3" aria-label="Menu chính">
         {NAV.map((item) => (
           <Link
             key={item.to}
@@ -229,7 +230,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Search className="h-4 w-4 shrink-0" aria-hidden />
               <span className="truncate">Tìm SKU hoặc mã đơn</span>
               <kbd className="ml-auto rounded-md border border-border/80 bg-white/80 px-1.5 py-0.5 text-[10px] font-medium shadow-sm">
-                ⌘K
+                Ctrl K
               </kbd>
             </button>
 
@@ -262,7 +263,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="flex w-full flex-wrap items-center gap-3">
               <p className="flex items-center gap-2 text-sm font-semibold text-primary">
                 <Presentation className="h-4 w-4" aria-hidden />
-                Giải thích thuật toán
+                Chế độ bảo vệ
               </p>
               {defense.demoActive ? (
                 <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -314,22 +315,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           id="main-content"
           className="w-full flex-1 px-4 pt-7 pb-[calc(7rem+env(safe-area-inset-bottom))] lg:px-8 lg:pb-10"
         >
-          {pathname !== "/cpp" ? (
-            <div className="mb-5 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
-              Các màn hình này đang dùng dữ liệu và thuật toán TypeScript mô phỏng.
-              Số liệu hiệu năng ở đây chưa phải kết quả đo C++.{" "}
-              <Link to="/cpp" className="font-semibold text-primary underline underline-offset-4">
-                Mở Demo C++
-              </Link>
-            </div>
-          ) : null}
           {children}
         </main>
       </div>
 
       <nav
         className="glass-shell fixed inset-x-3 bottom-[calc(.75rem+env(safe-area-inset-bottom))] z-30 grid grid-cols-4 rounded-lg border px-2 py-1.5 md:hidden"
-        aria-label="Điều hướng nhanh"
+        aria-label="Menu nhanh"
       >
         {MOBILE_NAV.map((item) => (
           <Link

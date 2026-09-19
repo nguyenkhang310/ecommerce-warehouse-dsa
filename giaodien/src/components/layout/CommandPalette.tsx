@@ -4,6 +4,7 @@ import {
   Binary,
   ChartNoAxesCombined,
   Database,
+  FlaskConical,
   LayoutDashboard,
   ListOrdered,
   PackagePlus,
@@ -21,17 +22,17 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { inventoryApi, orderApi } from "@/services/mockApiAdapter";
+import { inventoryApi, orderApi } from "@/services/api";
 import { formatNumber } from "@/lib/format";
 
 const navItems = [
   { label: "Tổng quan", to: "/", icon: LayoutDashboard },
   { label: "Sản phẩm", to: "/products", icon: PackageSearch },
   { label: "Hàng đợi đơn", to: "/orders", icon: ListOrdered },
-  { label: "Mô phỏng DSA", to: "/visualizer", icon: Binary },
+  { label: "Trực quan DSA", to: "/visualizer", icon: Binary },
   { label: "Hiệu năng", to: "/performance", icon: ChartNoAxesCombined },
   { label: "Dữ liệu & hệ thống", to: "/system", icon: Database },
-  { label: "Demo C++", to: "/cpp", icon: Binary },
+  { label: "Demo C++", to: "/cpp", icon: FlaskConical },
 ] as const;
 
 export function CommandPalette({
@@ -71,7 +72,7 @@ export function CommandPalette({
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
       <CommandInput
-        placeholder="Tìm sản phẩm hoặc đơn hàng… ⌘K"
+        placeholder="Tìm SKU hoặc mã đơn…"
         value={query}
         onValueChange={setQuery}
       />
@@ -89,7 +90,7 @@ export function CommandPalette({
         {prefix.data && prefix.data.entries.length > 0 ? (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Sản phẩm gợi ý • Cây tiền tố O(k + m)">
+            <CommandGroup heading="Sản phẩm gợi ý">
               {prefix.data.entries.map((p) => (
                 <CommandItem key={p.sku} value={p.sku} onSelect={() => go("/products")}>
                   <PackageSearch className="h-4 w-4" aria-hidden />
@@ -107,7 +108,7 @@ export function CommandPalette({
         {exact.data?.order ? (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Đơn hàng chính xác • Tra cứu bảng băm trung bình O(1)">
+            <CommandGroup heading="Đơn hàng">
               <CommandItem value={exact.data.order.orderCode} onSelect={() => go("/orders")}>
                 <ListOrdered className="h-4 w-4" aria-hidden />
                 <span className="font-mono text-xs">{exact.data.order.orderCode}</span>
@@ -135,7 +136,7 @@ export function CommandPalette({
           </CommandItem>
           <CommandItem value="heap-visualizer" onSelect={() => go("/visualizer")}>
             <PlayCircle className="h-4 w-4" aria-hidden />
-            Mở mô phỏng hàng đợi ưu tiên
+            Mở trực quan hàng đợi ưu tiên
           </CommandItem>
         </CommandGroup>
       </CommandList>
