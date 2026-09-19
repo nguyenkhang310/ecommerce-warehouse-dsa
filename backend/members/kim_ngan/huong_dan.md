@@ -39,15 +39,15 @@ không ghi chung rằng mọi truy vấn đều O(1).
 Đầu vào cho `run_demo`:
 
 ```json
-{"entries":[{"term":"samsung","sku":"A"},{"term":"sandisk","sku":"B"},{"term":"sony","sku":"C"}],"prefix":"sa"}
+{"entries":[{"term":"samsung","sku":"A"},{"term":"sandisk","sku":"B"},{"term":"sony","sku":"C"}],"prefix":"sa","erase":{"term":"samsung","sku":"A"}}
 ```
 
 Đọc entries, gọi `insert`, sau đó gọi `search_prefix`. Kết quả phải chứa đúng `A` và `B`.
 Thêm thao tác xóa để demo xóa `samsung/A` rồi tìm lại chỉ còn `B`.
 Trả SKU và dữ liệu mô tả cây bằng JSON nếu cần; sai đầu vào ném `std::invalid_argument`.
 
-Chạy từ gốc repo: `npm run demo -- kim_ngan`. Sau khi viết phần đọc đầu vào,
-truyền JSON bằng `npm run demo -- kim_ngan duong_dan/input.json` hoặc dán ở `/cpp`.
+Chạy từ gốc repo: `npm run demo -- kim_ngan`. Có thể truyền JSON bằng
+`npm run demo -- kim_ngan duong_dan/input.json` hoặc dán ở `/cpp`.
 Sau khi sửa C++, build/start lại backend để web dùng bản mới.
 
 ## Các ca phải kiểm thử

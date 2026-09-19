@@ -41,8 +41,6 @@ private:
 
 } // namespace dsa::kim_ngan
 
-#include "shared/bao_loi.cpp"
-
 namespace dsa::kim_ngan {
 
 Trie::Trie() : root_(std::make_unique<Node>()) {}

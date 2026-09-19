@@ -44,8 +44,9 @@ Chỉ giữ tham chiếu/iterator theo đúng hiệu lực của cách cài đ�
 B chỉ xuất hiện một lần, giữ `delta=-1` và `stock_after=11`.
 Trả snapshot bằng JSON; sai kiểu/capacity âm/SKU rỗng thì ném `std::invalid_argument`.
 
-Chạy từ gốc repo: `npm run demo -- ngoc_tram`. Sau khi cài parsing,
-dùng `npm run demo -- ngoc_tram duong_dan/input.json` hoặc dán JSON tại `/cpp`.
+Chạy từ gốc repo: `npm run demo -- ngoc_tram`. Có thể lưu JSON trên thành
+`input_mau.json`, rồi chạy `npm run demo -- ngoc_tram backend/members/ngoc_tram/input_mau.json`.
+Một file mẫu nhỏ, ổn định thì đưa lên GitHub; file thử tạm và output chạy không cần đưa lên.
 Sửa C++ rồi build/start lại backend khi dùng web.
 
 ## Các ca phải kiểm thử
@@ -65,7 +66,9 @@ và tạo thao tác cập nhật có kiểm soát lúc demo, không biến các 
 Khi service chung có đủ module, kiểm thử chuỗi: nạp CSV → tạo Hash/Trie → đưa đơn chờ vào Heap
 → lấy đơn → kiểm tra tồn kho → cập nhật Hash và RecentList → xem lại dữ liệu qua API.
 Kiểm tra cả đơn thiếu hàng, SKU không có và cập nhật lặp. Ghi rõ trường hợp nào còn bị chặn bởi TODO.
-Test `main()` riêng đặt trong `kiem_thu/`, không include vào demo.
+Module và demo nằm trong thư mục `ngoc_tram`. Test riêng đặt trong thư mục con
+`ngoc_tram/kiem_thu/`, không include vào demo. Kiểm thử tích hợp dùng nhiều module
+thì đặt tại `backend/kiem_thu/` để cả nhóm cùng sửa, không để riêng trong module TP3.
 
 ## Bàn giao
 

@@ -3,7 +3,6 @@
 
 #include <json.hpp>
 #include "cay_tien_to.cpp"
-#include "shared/bao_loi.cpp"
 #include <stdexcept>
 
 namespace dsa::kim_ngan {
@@ -27,14 +26,25 @@ nlohmann::json run_demo(const nlohmann::json& du_lieu_vao) {
 
     const std::string prefix = du_lieu_vao["prefix"].get<std::string>();
     const auto matches_before_erase = trie.search_prefix(prefix);
-    trie.erase("samsung", "A");
+    nlohmann::json erased = nullptr;
+    if (du_lieu_vao.contains("erase")) {
+        const auto& item = du_lieu_vao["erase"];
+        if (!item.is_object() || !item.contains("term") || !item.contains("sku") ||
+            !item["term"].is_string() || !item["sku"].is_string()) {
+            throw std::invalid_argument("erase cần term và sku là chuỗi");
+        }
+        const auto term = item["term"].get<std::string>();
+        const auto sku = item["sku"].get<std::string>();
+        trie.erase(term, sku);
+        erased = {{"term", term}, {"sku", sku}};
+    }
     const auto matches_after_erase = trie.search_prefix(prefix);
 
     return {
         {"prefix", prefix},
         {"matchesBeforeErase", matches_before_erase},
         {"matchesAfterErase", matches_after_erase},
-        {"erased", {{"term", "samsung"}, {"sku", "A"}}},
+        {"erased", erased},
     };
 }
 
