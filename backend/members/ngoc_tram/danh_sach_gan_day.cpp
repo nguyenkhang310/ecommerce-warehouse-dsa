@@ -145,8 +145,6 @@ namespace dsa::ngoc_tram
 
 } // namespace dsa::ngoc_tram
 
-#include "shared/bao_loi.cpp"
-
 namespace dsa::ngoc_tram
 {
 
@@ -154,7 +152,7 @@ namespace dsa::ngoc_tram
     {
         if (update.sku.empty())
         {
-            throw std::invalid_argument("RecentList::touch: SKU rong");
+            throw std::invalid_argument("RecentList::touch: SKU rỗng");
         }
         if (capacity_ == 0)
         {

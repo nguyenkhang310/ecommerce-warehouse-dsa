@@ -132,6 +132,10 @@ nlohmann::json run_demo(const nlohmann::json &du_lieu_vao)
                 throw std::invalid_argument("stock_after vượt phạm vi int");
             }
             stock_after = static_cast<int>(value);
+            if (stock_after < 0)
+            {
+                throw std::invalid_argument("stock_after không được âm");
+            }
         }
 
         std::string updated_at = std::to_string(fake_timestamp++);

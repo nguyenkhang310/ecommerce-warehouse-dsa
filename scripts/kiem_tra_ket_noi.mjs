@@ -54,11 +54,34 @@ try {
   assert.equal(modules.status, 200);
   assert.deepEqual(modules.data.modules.map((member) => member.id),
     ["nhat_minh", "kim_ngan", "kieu_trang", "ngoc_tram", "nguyen_khang"]);
+  const demoInputs = {
+    nhat_minh: {},
+    kim_ngan: {
+      entries: [
+        { term: "samsung", sku: "A" },
+        { term: "sandisk", sku: "B" },
+        { term: "sony", sku: "C" },
+      ],
+      prefix: "sa",
+      erase: { term: "samsung", sku: "A" },
+    },
+    kieu_trang: { data_dir: "backend/data/data_chinh", sku: "__KHONG_TON_TAI__" },
+    ngoc_tram: {
+      capacity: 3,
+      updates: [
+        { sku: "A", delta: 1, stock_after: 11 },
+        { sku: "B", delta: 2, stock_after: 12 },
+        { sku: "A", delta: -1, stock_after: 10 },
+      ],
+    },
+    nguyen_khang: {},
+  };
   for (const member of modules.data.modules) {
     assert.equal(member.entry, "backend/members/" + member.id + "/chay_thu.cpp");
     assert.ok(existsSync(join(root, member.entry)), "Thiếu file chạy thử: " + member.entry);
-    const result = await request("/api/demo/" + member.id, "{}");
-    // Cho phép 200 khi thành viên đã hoàn thiện demo; 501 là trạng thái khung.
+    const result = await request("/api/demo/" + member.id,
+      JSON.stringify(demoInputs[member.id]));
+    // Module đã hoàn thiện trả 200; phần đang làm trả 501.
     assert.ok([200, 501].includes(result.status));
     assert.equal(result.data.member, member.id);
     if (result.status === 501) {

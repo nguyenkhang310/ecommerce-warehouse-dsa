@@ -4,18 +4,17 @@
 #include <json.hpp>
 #include "bang_bam.cpp"
 #include "luu_tru.cpp"
-#include "shared/bao_loi.cpp"
 
 namespace dsa::kieu_trang {
 
 nlohmann::json run_demo(const nlohmann::json& du_lieu_vao) {
 
     if (!du_lieu_vao.contains("data_dir") || !du_lieu_vao["data_dir"].is_string()) {
-        throw std::invalid_argument("Thieu hoac sai data_dir");
+        throw std::invalid_argument("Thiếu hoặc sai data_dir");
     }
     std::string data_dir = du_lieu_vao["data_dir"].get<std::string>();
     if (!du_lieu_vao.contains("sku") || !du_lieu_vao["sku"].is_string()) {
-        throw std::invalid_argument("Thieu hoac sai sku");
+        throw std::invalid_argument("Thiếu hoặc sai sku");
     }
     std::string sku = du_lieu_vao["sku"].get<std::string>();
 

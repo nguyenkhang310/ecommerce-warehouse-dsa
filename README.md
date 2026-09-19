@@ -88,7 +88,7 @@ hai thư mục này không đưa vào Git.
 
 `/cpp → giao_tiep_cpp.ts → /api → may_chu.cpp → chay_thu.cpp`.
 
-Các module thuật toán và loader đang chờ triển khai. Hàm chưa hoàn thiện trả
+Hàm chưa hoàn thiện trả
 `NOT_IMPLEMENTED` (HTTP 501 hoặc mã thoát executable 2).
 Trang `/cpp` đã gọi C++; các màn hình nghiệp vụ hiện dùng `mockApiAdapter.ts`.
 

@@ -6,14 +6,14 @@
 #include <stdexcept>
 #include <fstream>
 #include <iomanip>
+#include <unordered_map>
+#include <utility>
 
 namespace dsa::kieu_trang {
 
 StorageData load_data(const std::filesystem::path& path);
 void save_data(const std::filesystem::path& path, const StorageData& data);
 } // namespace dsa::kieu_trang
-
-#include "shared/bao_loi.cpp"
 
 namespace dsa::kieu_trang {
 
@@ -57,14 +57,14 @@ bool doc_csv(std::istream& f, CsvRow& columns) {
             in_quotes = true;
         }
         else if (closed_quote || c == '"') {
-            throw std::runtime_error("CSV sai dau ngoac kep.");
+            throw std::runtime_error("CSV sai dấu ngoặc kép.");
         }
         else {
             field += c;
         }
     }
     if (in_quotes || f.bad()) {
-        throw std::runtime_error("CSV chua dong ngoac hoac loi doc file.");
+        throw std::runtime_error("CSV chưa đóng ngoặc hoặc lỗi đọc file.");
     }
     if (has_data) {
         columns.push_back(field);
@@ -93,7 +93,7 @@ std::string priority_to_string(Priority priority) {
     if (priority == Priority::urgent) {
         return "urgent";
     }
-    throw std::runtime_error("Priority khong hop le");
+    throw std::runtime_error("Priority không hợp lệ");
 }
 
 std::string status_to_string(OrderStatus status) {
@@ -113,7 +113,7 @@ std::string status_to_string(OrderStatus status) {
         return "returned";
     }
 
-    throw std::runtime_error("OrderStatus khong hop le");
+    throw std::runtime_error("OrderStatus không hợp lệ");
 }
 
 std::size_t find_column(const CsvRow& header, const std::string& name) {
@@ -122,7 +122,7 @@ std::size_t find_column(const CsvRow& header, const std::string& name) {
             return i;
         }
     }
-    throw std::runtime_error("Thieu cot: " + name);
+    throw std::runtime_error("Thiếu cột: " + name);
 }
 
 void remove_utf8_bom(CsvRow& header) {
@@ -145,8 +145,8 @@ void require_field(
 ) {
     if (value.empty()) {
         throw std::runtime_error(
-            file + " - ban ghi " + std::to_string(record)
-            + ": truong " + field + " khong duoc rong"
+            file + " - bản ghi " + std::to_string(record)
+            + ": trường " + field + " không được rỗng"
         );
     }
 }
@@ -159,8 +159,8 @@ void require_columns(
 ) {
     if (row.size() != header.size()) {
         throw std::runtime_error(
-            file + " - ban ghi " + std::to_string(record)
-            + ": so cot khong hop le"
+            file + " - bản ghi " + std::to_string(record)
+            + ": số cột không hợp lệ"
         );
     }
 }
@@ -182,8 +182,8 @@ int parse_int(
     }
     catch (...) {
         throw std::runtime_error(
-            file + " - ban ghi " + std::to_string(record)
-            + ": truong " + field + " khong phai so hop le"
+            file + " - bản ghi " + std::to_string(record)
+            + ": trường " + field + " không phải số hợp lệ"
         );
     }
 }
@@ -196,8 +196,8 @@ std::uint64_t parse_uint64(
 ) {
     if (!value.empty() && value[0] == '-') {
         throw std::runtime_error(
-            file + " - ban ghi " + std::to_string(record)
-            + ": truong " + field + " khong duoc am"
+            file + " - bản ghi " + std::to_string(record)
+            + ": trường " + field + " không được âm"
         );
     }
     try {
@@ -210,41 +210,41 @@ std::uint64_t parse_uint64(
     }
     catch (...) {
         throw std::runtime_error(
-            file + " - ban ghi " + std::to_string(record)
-            + ": truong " + field + " khong phai so hop le"
+            file + " - bản ghi " + std::to_string(record)
+            + ": trường " + field + " không phải số hợp lệ"
         );
     }
 }
 
 StorageData load_data(const std::filesystem::path& path) {
-  
+
     std::filesystem::path product_file=path/"san_pham.csv";
     std::filesystem::path order_file=path/"don_hang.csv";
-  
+
      if (!std::filesystem::exists(product_file)) {
-        throw std::runtime_error("Khong tim thay file san_pham.csv");
+        throw std::runtime_error("Không tìm thấy file san_pham.csv");
     }
     if (!std::filesystem::exists(order_file)) {
-        throw std::runtime_error("Khong tim thay file don_hang.csv");
+        throw std::runtime_error("Không tìm thấy file don_hang.csv");
     }
-   
+
     std::ifstream product_stream(product_file, std::ios::binary);
     std::ifstream order_stream(order_file, std::ios::binary);
 
     if (!product_stream.is_open()) {
-        throw std::runtime_error("Khong the mo file san_pham.csv");
+        throw std::runtime_error("Không thể mở file san_pham.csv");
     }
     if (!order_stream.is_open()) {
-        throw std::runtime_error("Khong the mo file don_hang.csv");
+        throw std::runtime_error("Không thể mở file don_hang.csv");
     }
 
     StorageData data;
 
     CsvRow product_header;
     if (!doc_csv(product_stream, product_header)) {
-        throw std::runtime_error("File san_pham.csv rong");
+        throw std::runtime_error("File san_pham.csv rỗng");
     }
-    
+
     remove_utf8_bom(product_header);
 
     std::size_t col_id = find_column(product_header, "id");
@@ -267,7 +267,7 @@ StorageData load_data(const std::filesystem::path& path) {
             "san_pham.csv",
             product_record
         );
-  
+
         require_field(row[col_id], "san_pham.csv", product_record, "id");
         require_field(row[col_sku], "san_pham.csv", product_record, "sku");
         require_field(row[col_name], "san_pham.csv", product_record, "name");
@@ -279,8 +279,8 @@ StorageData load_data(const std::filesystem::path& path) {
         require_field(row[col_updated], "san_pham.csv", product_record, "updated_at");
 
         Product product;
+        product.id = row[col_id];
         product.sku = row[col_sku];
-        product.id = product.sku;
         product.name = row[col_name];
         product.category = row[col_category];
         product.stock = parse_int(
@@ -297,27 +297,27 @@ StorageData load_data(const std::filesystem::path& path) {
         );
         if (product.stock < 0) {
             throw std::runtime_error(
-                "san_pham.csv - ban ghi " + std::to_string(product_record)
-                + ": stock khong duoc am"
+                "san_pham.csv - bản ghi " + std::to_string(product_record)
+                + ": stock không được âm"
             );
         }
         if (product.reorder_level < 0) {
             throw std::runtime_error(
-                "san_pham.csv - ban ghi " + std::to_string(product_record)
-                + ": reorder_level khong duoc am"
+                "san_pham.csv - bản ghi " + std::to_string(product_record)
+                + ": reorder_level không được âm"
             );
         }
         product.created_at = row[col_created];
         product.updated_at = row[col_updated];
         data.products.push_back(product);
     }
-    
+
     CsvRow order_header;
 
     if (!doc_csv(order_stream, order_header)) {
-        throw std::runtime_error("File don_hang.csv rong");
+        throw std::runtime_error("File don_hang.csv rỗng");
     }
-  
+
     remove_utf8_bom(order_header);
 
     std::size_t order_col_id = find_column(order_header, "id");
@@ -329,19 +329,20 @@ StorageData load_data(const std::filesystem::path& path) {
     std::size_t order_col_sku = find_column(order_header, "sku");
     std::size_t order_col_quantity = find_column(order_header, "quantity");
 
-    
+
     std::size_t order_record = 1;
-   
+    std::unordered_map<std::string, std::size_t> order_positions;
+
     while (doc_csv(order_stream, row)) {
          ++order_record;
-    
+
         require_columns(
             row,
             order_header,
             "don_hang.csv",
             order_record
         );
-    
+
         require_field(row[order_col_id], "don_hang.csv", order_record, "id");
         require_field(row[order_col_code], "don_hang.csv", order_record, "order_code");
         require_field(row[order_col_priority], "don_hang.csv", order_record, "priority");
@@ -364,19 +365,18 @@ StorageData load_data(const std::filesystem::path& path) {
             order_record,
             "quantity"
         );
-        
+
         if (item.quantity <= 0) {
             throw std::runtime_error(
-                "don_hang.csv - ban ghi " + std::to_string(order_record)
-                + ": quantity phai lon hon 0"
+                "don_hang.csv - bản ghi " + std::to_string(order_record)
+                + ": quantity phải lớn hơn 0"
             );
         }
-       
-        order.items.push_back(item);
+
         order.id = row[order_col_id];
         order.order_code = row[order_col_code];
         order.created_at = row[order_col_created];
-        
+
         if (row[order_col_priority] == "normal") {
             order.priority = Priority::normal;
         }
@@ -385,14 +385,14 @@ StorageData load_data(const std::filesystem::path& path) {
         }
         else if (row[order_col_priority] == "urgent") {
             order.priority = Priority::urgent;
-        } 
-        else { 
+        }
+        else {
              throw std::runtime_error(
-                "don_hang.csv - ban ghi " + std::to_string(order_record)
-                + ": priority khong hop le: " + row[order_col_priority]
+                "don_hang.csv - bản ghi " + std::to_string(order_record)
+                + ": priority không hợp lệ: " + row[order_col_priority]
             );
         }
-    
+
         if (row[order_col_status] == "queued") {
             order.status = OrderStatus::queued;
         }
@@ -408,13 +408,13 @@ StorageData load_data(const std::filesystem::path& path) {
         else if (row[order_col_status] == "returned") {
             order.status = OrderStatus::returned;
         }
-        else { 
+        else {
              throw std::runtime_error(
-                "don_hang.csv - ban ghi " + std::to_string(order_record)
-                + ": status khong hop le: " + row[order_col_status]
+                "don_hang.csv - bản ghi " + std::to_string(order_record)
+                + ": status không hợp lệ: " + row[order_col_status]
             );
         }
-        
+
         order.sequence_number = parse_uint64(
             row[order_col_sequence],
             "don_hang.csv",
@@ -422,12 +422,33 @@ StorageData load_data(const std::filesystem::path& path) {
             "sequence_number"
         );
         order.note = "";
-        data.orders.push_back(order);
-    }   
+
+        const auto [position, inserted] = order_positions.emplace(
+            order.id, data.orders.size()
+        );
+        if (inserted) {
+            order.items.push_back(std::move(item));
+            data.orders.push_back(std::move(order));
+        }
+        else {
+            Order& existing = data.orders[position->second];
+            if (existing.order_code != order.order_code
+                || existing.priority != order.priority
+                || existing.sequence_number != order.sequence_number
+                || existing.status != order.status
+                || existing.created_at != order.created_at) {
+                throw std::runtime_error(
+                    "don_hang.csv - bản ghi " + std::to_string(order_record)
+                    + ": cùng id nhưng khác thông tin đơn hàng"
+                );
+            }
+            existing.items.push_back(std::move(item));
+        }
+    }
     return data;
 }
 void save_data(const std::filesystem::path& path, const StorageData& data) {
-   
+
     std::filesystem::create_directories(path);
 
     std::filesystem::path product_file = path / "san_pham.csv";
@@ -437,13 +458,13 @@ void save_data(const std::filesystem::path& path, const StorageData& data) {
     std::ofstream order_stream(order_file, std::ios::binary);
 
     if (!product_stream.is_open()) {
-        throw std::runtime_error("Khong the ghi file san_pham.csv");
+        throw std::runtime_error("Không thể ghi file san_pham.csv");
     }
 
     if (!order_stream.is_open()) {
-        throw std::runtime_error("Khong the ghi file don_hang.csv");
+        throw std::runtime_error("Không thể ghi file don_hang.csv");
     }
-    
+
     ghi_csv(product_stream, {
         "id",
         "sku",
@@ -454,7 +475,7 @@ void save_data(const std::filesystem::path& path, const StorageData& data) {
         "created_at",
         "updated_at"
     });
-   
+
     for (const Product& product : data.products) {
         ghi_csv(product_stream, {
             product.id,
@@ -467,7 +488,7 @@ void save_data(const std::filesystem::path& path, const StorageData& data) {
             product.updated_at
         });
     }
-    
+
     ghi_csv(order_stream, {
         "id",
         "order_code",
@@ -478,8 +499,13 @@ void save_data(const std::filesystem::path& path, const StorageData& data) {
         "sku",
         "quantity"
     });
-    
+
     for (const Order& order : data.orders) {
+        if (order.items.empty()) {
+            throw std::runtime_error(
+                "Không thể ghi đơn " + order.id + ": đơn hàng không có sản phẩm"
+            );
+        }
         for (const OrderItem& item : order.items) {
             ghi_csv(order_stream, {
                 order.id,

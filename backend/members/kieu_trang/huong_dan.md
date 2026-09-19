@@ -34,7 +34,7 @@ Tra cứu/thêm/xóa của bảng băm dự kiến trung bình O(1), trường h
 - Đọc theo tên cột, hỗ trợ UTF-8, ô có dấu phẩy, ngoặc kép và xuống dòng.
   Có thể tham khảo hàm `doc_csv`/`ghi` trong `scripts/lam_sach.cpp`;
   không include cả file đó vì nó có `main()` riêng.
-- Tám cột nghiệp vụ của sản phẩm ánh xạ vào `Product`. `id=sku` trong bộ dữ liệu này.
+- Tám cột nghiệp vụ của sản phẩm ánh xạ vào `Product`; giữ riêng `id` và `sku` đúng như CSV.
 - Mỗi dòng đơn thành một `Order` với một `OrderItem`; `product_id=sku`, giữ quantity,
   để tên mặt hàng trống nếu chưa có. Service dùng Hash Table bổ sung tên sau khi nạp.
 - `normal/high/urgent` ánh xạ `Priority`; trạng thái gồm cả `returned` trong enum chung.
@@ -60,8 +60,8 @@ Thay chuỗi SKU bằng một mã có thật trong CSV. `run_demo` gọi `load_d
 rồi tra SKU. Trả số sản phẩm/đơn và bản ghi tìm thấy, hoặc `null` nếu không có.
 Đầu vào sai ném `std::invalid_argument`; lỗi file ghi thông tin đủ để sửa đường dẫn.
 
-Chạy từ gốc repo: `npm run demo -- kieu_trang`. Khi đã cài parsing,
-dùng `npm run demo -- kieu_trang duong_dan/input.json` hoặc trang `/cpp`.
+Chạy từ gốc repo bằng `npm run demo -- kieu_trang duong_dan/input.json`
+hoặc nhập JSON tại trang `/cpp`.
 Web gửi đường dẫn đến backend chạy trên cùng máy; file chọn từ trình duyệt phải gửi nội dung
 nếu sau này làm chức năng upload, không gửi một đường dẫn máy khách để server tự mở.
 
