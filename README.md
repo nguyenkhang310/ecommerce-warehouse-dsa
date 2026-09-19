@@ -26,7 +26,20 @@ Heap, Trie và danh sách liên kết đôi + bảng băm nằm trong bộ nhớ
 Giao diện gồm 7 màn hình: Tổng quan, Sản phẩm, Hàng đợi đơn, Trực quan DSA,
 Hiệu năng, Dữ liệu & hệ thống, và Demo C++ (`/cpp` chạy `chay_thu.cpp` của từng
 thành viên). Mọi số liệu trên giao diện đều do backend C++ trả về, không có dữ
-liệu dựng sẵn ở frontend (chi tiết từng cấu trúc xem bảng trên).
+liệu dựng sẵn ở frontend.
+
+```mermaid
+flowchart TB
+    CSV["2 file CSV\n10.000 sản phẩm + 10.000 đơn"] --> MEM["Nạp vào bộ nhớ lúc mở máy"]
+    MEM --> H["Bảng băm"]
+    MEM --> T["Cây tiền tố"]
+    MEM --> Q["Hàng đợi ưu tiên"]
+    MEM --> R["Danh sách gần đây"]
+    H --> U1["Tra cứu sản phẩm"]
+    T --> U2["Gợi ý tìm kiếm"]
+    Q --> U3["Xử lý đơn"]
+    R --> U4["Lịch sử cập nhật"]
+```
 
 ## Kiến trúc
 
@@ -51,11 +64,10 @@ giaodien/ (React + TS) ── HTTP/JSON ──▶ may_chu.cpp ──▶ dich_vu.
 Đơn hàng chỉ có 2 trạng thái:
 
 ```mermaid
-stateDiagram-v2
-    [*] --> "Đang chờ": tạo đơn mới
-    "Đang chờ" --> "Đang chờ": thêm đơn khác
-    "Đang chờ" --> "Đã xong": lấy đơn gấp nhất ra làm
-    "Đã xong" --> [*]
+flowchart LR
+    A["Tạo đơn mới"] --> B["Đang chờ"]
+    B -- "thêm đơn khác" --> B
+    B -- "lấy đơn gấp nhất ra làm" --> C["Đã xong"]
 ```
 
 Quy ước quan trọng:
