@@ -1,5 +1,11 @@
 # Quản lý kho & đơn hàng (Ecommerce Warehouse DSA)
 
+![C++17](https://img.shields.io/badge/C++-17-00599C?logo=cplusplus&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white)
+
 Đồ án Cấu trúc dữ liệu & Giải thuật: hệ thống quản lý kho và đơn hàng vận hành
 hoàn toàn trên cấu trúc dữ liệu tự cài đặt bằng **C++17**, giao diện **React + TypeScript**
 hiển thị trực tiếp trạng thái và số đo hiệu năng từ backend.
@@ -22,7 +28,41 @@ Hiệu năng, Dữ liệu & hệ thống, và Demo C++ (`/cpp` chạy `chay_thu.
 thành viên). Mọi số liệu trên giao diện đều do backend C++ trả về, không có dữ
 liệu dựng sẵn ở frontend.
 
+```mermaid
+flowchart TB
+    CSV["data_chinh/*.csv\n10.000 sản phẩm + 10.000 đơn"] --> LOAD["load_data() lúc khởi động"]
+    LOAD --> H["Bảng băm (MC1)\nSKU → Product · O(1)"]
+    LOAD --> T["Cây tiền tố (TP2)\ntừ khóa → SKU · O(k + m)"]
+    LOAD --> Q["Hàng đợi ưu tiên (MC2 + TP1)\nurgent > high > normal · O(log n)"]
+    LOAD --> R["Danh sách gần đây (TP3)\nmới nhất lên đầu · O(1)"]
+    H --> UI1["Tra cứu · cập nhật tồn kho"]
+    T --> UI2["Gợi ý tìm kiếm"]
+    Q --> UI3["Lấy đơn tiếp theo"]
+    R --> UI4["Lịch sử cập nhật"]
+```
+
 ## Kiến trúc
+
+```mermaid
+flowchart LR
+    subgraph FE["Frontend — giaodien/ (React 19 + TS)"]
+        UI["7 màn hình\nTổng quan · Sản phẩm · Đơn\nTrực quan · Hiệu năng\nHệ thống · Demo C++"]
+        SVC["services/api.ts\nservices/giao_tiep_cpp.ts"]
+    end
+    subgraph BE["Backend — C++17 (may_chu.exe :8080)"]
+        SRV["may_chu.cpp\nHTTP server"]
+        CORE["dich_vu.cpp\nWarehouseService"]
+        MODS["members/\nHash · Heap · Trie\nRecentList · Sort"]
+    end
+    DB[("CSV data_chinh\n10k sản phẩm + 10k đơn")]
+
+    UI --> SVC
+    SVC -- "POST /api/app (action, data)" --> SRV
+    SVC -- "POST /api/demo/:id" --> SRV
+    SRV --> CORE
+    CORE --> MODS
+    CORE -- "nạp lúc khởi động\nđọc lại khi reset" --> DB
+```
 
 ```text
 giaodien/ (React + TS) ── HTTP/JSON ──▶ may_chu.cpp ──▶ dich_vu.cpp ──▶ module DSA
@@ -30,6 +70,16 @@ giaodien/ (React + TS) ── HTTP/JSON ──▶ may_chu.cpp ──▶ dich_vu.
      │                                       │                      (chỉ đọc lúc nạp / nạp lại)
      ├── POST /api/app      → nghiệp vụ (tra cứu, đơn, benchmark, …)
      └── POST /api/demo/:id → chạy chay_thu.cpp của từng thành viên
+```
+
+Vòng đời một đơn hàng:
+
+```mermaid
+stateDiagram-v2
+    [*] --> queued: order_enqueue()
+    queued --> queued: chèn đơn mới (Heap O(log n))
+    queued --> completed: order_extract() lấy nút gốc
+    completed --> [*]
 ```
 
 Quy ước quan trọng:
@@ -42,6 +92,21 @@ Quy ước quan trọng:
 * Benchmark đo trong C++ bằng `steady_clock`, có chạy khởi động (warmup), lặp nhiều lần
   lấy trung bình, cộng dồn checksum để trình biên dịch không loại bỏ phép đo.
   HTTP/JSON/render không tính vào thời gian DSA.
+
+```mermaid
+sequenceDiagram
+    participant UI as Trang Hiệu năng
+    participant API as POST /api/app
+    participant C as dich_vu.cpp
+    participant M as Module DSA thật
+    UI->>API: benchmark_run {operation, sizes, iterations, warmup}
+    API->>C: cắt mẫu đúng size
+    C->>C: warmup (không tính giờ)
+    C->>M: chạy DSA, bấm steady_clock
+    C->>C: chạy đối chứng trên cùng đầu vào
+    C-->>API: [{dsaMeanMs, baselineMeanMs, ...}]
+    API-->>UI: vẽ biểu đồ + lưu lịch sử (tối đa 60 điểm)
+```
 
 ## Công nghệ
 
