@@ -1,6 +1,6 @@
 // Run: 
-//   g++ -std=c++17 -O2 -I ../../ do_luong_ngoc_tram.cpp -o do_luong
-//   ./do_luong
+//   g++ -std=c++17 -O2 -I ../../../ do_luong.cpp -o do_luong
+//   do_luong.exe
 
 #include "../danh_sach_gan_day.cpp"
 #include <algorithm>
