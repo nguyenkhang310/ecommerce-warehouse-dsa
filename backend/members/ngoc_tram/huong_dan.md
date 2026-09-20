@@ -41,6 +41,18 @@ Chỉ giữ tham chiếu/iterator theo đúng hiệu lực của cách cài đ�
    Bảng băm tìm nút trung bình O(1), danh sách liên kết đôi tháo và gắn nút O(1).
 4. **Yếu tố thực tế nào quan trọng?** Danh sách có dung lượng nhỏ cố định. Đổi lại một bảng băm
    phụ giúp tránh quét danh sách và bảo đảm mỗi SKU chỉ xuất hiện một lần.
+## Vì sao RecentList cần Double Linked List kèm bảng băm ?
+RecentList cần **cả hai** vì mỗi cấu trúc chỉ đáp ứng một nửa yêu cầu:
+- **DLL** giữ **thứ tự** mới nhất → cũ nhất: `snapshot()` O(k), `evict_tail()` O(1) nhờ con trỏ `tail_`.
+- **Bảng băm** tra cứu **SKU → nút** O(1): `touch()` không cần quét danh sách, không nhân đôi SKU.
+
+**Nếu chỉ dùng DLL**: `touch` phải quét tìm SKU → O(n).  
+
+**Nếu chỉ dùng Hash Map**: không có thứ tự nên `snapshot` phải sắp xếp O(k log k), không biết đuổi ai khi vượt capacity.
+
+Khi kết hợp, bảng băm lưu **con trỏ** tới nút DLL. Khi nút di chuyển trong DLL, con trỏ không đổi → bảng băm không cần cập nhật. Nhờ đó mọi thao tác chính đều O(1): `touch`, `evict_tail`; `snapshot` O(k) → tối ưu.
+
+→ Đây chính là pattern **LRU Cache** (DLL + Hash Map) được dùng rộng rãi trong Redis, CPU cache, browser history.
 
 ## Kịch bản demo cần cài
 
