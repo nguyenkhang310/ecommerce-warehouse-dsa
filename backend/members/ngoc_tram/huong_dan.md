@@ -101,8 +101,8 @@ thì đặt tại `backend/kiem_thu/` để cả nhóm cùng sửa, không để
 | Cập nhật `B` hai lần | Có nguy cơ tạo hai nút hoặc giữ dữ liệu cũ | Dùng bảng băm tìm nút, ghi đè payload rồi đưa nút lên đầu | Test giữ đúng một `B` với dữ liệu mới |
 | Thêm quá capacity | Nút cuối và khóa băm có thể lệch nhau | `evict_tail` xóa cả liên kết, khóa băm và vùng nhớ | Test capacity 1/2 và lặp 10.000 lần đều đạt |
 | `chay_thu.cpp` không biên dịch được (lỗi dựng `RecentUpdate`) | `RecentUpdate` là aggregate (không có constructor tự định nghĩa) | Đổi sang gán theo tên trường, không phụ thuộc thứ tự | biên dịch sạch, không cảnh báo) |
-| Copy constructor bị xóa ngầm định | Phiên bản `danh_sach_gan_day.cpp` lúc đó chỉ khai báo `operator=(const RecentList&)` (copy assignment) và move constructor/move assignment, nhưng không khai báo copy constructor | Thêm lại copy constructor tường minh | Biên dịch được; chạy lại test 5000 vòng lặp thêm/xóa liên tục — không rò rỉ bộ nhớ, không con trỏ treo, bất biến hai chiều liên kết ↔ bảng băm luôn đúng. |
-| `Build/Search Trie` PASS giả khi sản phẩm đầu tiên có `name` rỗng | code lấy `prefix` trực tiếp từ `first_product.name` mà không xử lý trường hợp tên rỗng, dẫn tới prefix rỗng — một chuỗi rỗng là tiền tố của mọi chuỗi nên test mất khả năng phân biệt đúng/sai. | fallback sang dùng `sku` làm nguồn lấy prefix khi `name` rỗng | Tìm prefix 'SKU' thành công (matches.size()=3) | 
+| Copy constructor bị xóa ngầm định | Phiên bản `danh_sach_gan_day.cpp` lúc đó chỉ khai báo `operator=(const RecentList&)` (copy assignment) và move constructor/move assignment, nhưng không khai báo copy constructor | Thêm lại copy constructor tường minh | Biên dịch được; chạy lại test 5000 vòng lặp thêm/xóa liên tục -> không rò rỉ bộ nhớ, không con trỏ treo, bất biến hai chiều liên kết ↔ bảng băm luôn đúng. |
+| `Build/Search Trie` PASS giả khi sản phẩm đầu tiên có `name` rỗng | code lấy `prefix` trực tiếp từ `first_product.name` mà không xử lý trường hợp tên rỗng, dẫn tới prefix rỗng -> test mất khả năng phân biệt đúng/sai. | fallback sang dùng `sku` làm nguồn lấy prefix khi `name` rỗng | Tìm prefix `SKU` thành công (matches.size()=3) | 
 
 
 ## Bàn giao
