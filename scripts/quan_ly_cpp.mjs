@@ -96,7 +96,7 @@ function stopProcess(child) {
 
 async function runProject() {
   const executable = join(build, "may_chu" + suffix);
-  if (!existsSync(executable)) await compile(undefined, true);
+  await compile(undefined, true);
 
   let backendProcess;
   if (!(await backendReady())) {
