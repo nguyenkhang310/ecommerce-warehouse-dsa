@@ -21,9 +21,8 @@ bool doc_csv(std::istream& f, CsvRow& columns) {
     while (f.get(c)) {
         has_data = true;
         if (in_quotes) {
-            if (c != '"') {
+            if (c != '"')
                 field += c;
-            }
             else if (f.peek() == '"') {
                 field += '"';
                 f.get();
@@ -37,82 +36,58 @@ bool doc_csv(std::istream& f, CsvRow& columns) {
             columns.push_back(field);
             field.clear();
             closed_quote = false;
-            if (c == ',') {
+            if (c == ',')
                 continue;
-            }
-            if (c == '\r' && f.peek() == '\n') {
+            if (c == '\r' && f.peek() == '\n')
                 f.get();
-            }
             return true;
         }
-        else if (c == '"' && field.empty() && !closed_quote) {
+        else if (c == '"' && field.empty() && !closed_quote)
             in_quotes = true;
-        }
-        else if (closed_quote || c == '"') {
+        else if (closed_quote || c == '"')
             throw std::runtime_error("CSV sai dấu ngoặc kép.");
-        }
-        else {
+        else
             field += c;
-        }
     }
-    if (in_quotes || f.bad()) {
+
+    if (in_quotes || f.bad())
         throw std::runtime_error("CSV chưa đóng ngoặc hoặc lỗi đọc file.");
-    }
-    if (has_data) {
+    if (has_data)
         columns.push_back(field);
-    }
     return has_data;
 }
 
 void ghi_csv(std::ostream& f, const CsvRow& columns) {
     for (std::size_t i = 0; i < columns.size(); ++i) {
         f << std::quoted(columns[i], '"', '"');
-        if (i + 1 == columns.size()) {
-            f << '\n';
-        } else {
-            f << ',';
-        }
+        f << (i + 1 == columns.size() ? '\n' : ',');
     }
 }
 
 std::string priority_to_string(Priority priority) {
-    if (priority == Priority::normal) {
-        return "normal";
-    }
-    if (priority == Priority::high) {
-        return "high";
-    }
-    if (priority == Priority::urgent) {
-        return "urgent";
+    switch (priority) {
+        case Priority::normal: return "normal";
+        case Priority::high: return "high";
+        case Priority::urgent: return "urgent";
     }
     throw std::runtime_error("Priority không hợp lệ");
 }
 
 std::string status_to_string(OrderStatus status) {
-    if (status == OrderStatus::queued) {
-        return "queued";
+    switch (status) {
+        case OrderStatus::queued: return "queued";
+        case OrderStatus::processing: return "processing";
+        case OrderStatus::completed: return "completed";
+        case OrderStatus::cancelled: return "cancelled";
+        case OrderStatus::returned: return "returned";
     }
-    if (status == OrderStatus::processing) {
-        return "processing";
-    }
-    if (status == OrderStatus::completed) {
-        return "completed";
-    }
-    if (status == OrderStatus::cancelled) {
-        return "cancelled";
-    }
-    if (status == OrderStatus::returned) {
-        return "returned";
-    }
-
     throw std::runtime_error("OrderStatus không hợp lệ");
 }
 
 std::size_t find_column(const CsvRow& header, const std::string& name) {
     for (std::size_t i = 0; i < header.size(); ++i) {
-        if (header[i] == name) {
+        if (header[i] == name)
             return i;
-        }
     }
     throw std::runtime_error("Thiếu cột: " + name);
 }
@@ -135,12 +110,11 @@ void require_field(
     std::size_t record,
     const std::string& field
 ) {
-    if (value.empty()) {
+    if (value.empty())
         throw std::runtime_error(
             file + " - bản ghi " + std::to_string(record)
             + ": trường " + field + " không được rỗng"
         );
-    }
 }
 
 void require_columns(
@@ -149,12 +123,11 @@ void require_columns(
     const std::string& file,
     std::size_t record
 ) {
-    if (row.size() != header.size()) {
+    if (row.size() != header.size())
         throw std::runtime_error(
             file + " - bản ghi " + std::to_string(record)
             + ": số cột không hợp lệ"
         );
-    }
 }
 
 int parse_int(
@@ -167,9 +140,9 @@ int parse_int(
         std::size_t pos;
         int number = std::stoi(value, &pos);
 
-        if (pos != value.size()) {
+        if (pos != value.size())
             throw std::runtime_error("invalid");
-        }
+
         return number;
     }
     catch (...) {
@@ -186,18 +159,19 @@ std::uint64_t parse_uint64(
     std::size_t record,
     const std::string& field
 ) {
-    if (!value.empty() && value[0] == '-') {
+    if (!value.empty() && value[0] == '-')
         throw std::runtime_error(
             file + " - bản ghi " + std::to_string(record)
             + ": trường " + field + " không được âm"
         );
-    }
+
     try {
         std::size_t pos;
         unsigned long long number = std::stoull(value, &pos);
-        if (pos != value.size()) {
+
+        if (pos != value.size())
             throw std::runtime_error("invalid");
-        }
+
         return static_cast<std::uint64_t>(number);
     }
     catch (...) {
