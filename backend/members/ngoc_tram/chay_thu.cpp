@@ -59,12 +59,10 @@ nlohmann::json run_demo(const nlohmann::json &du_lieu_vao)
         {
             throw std::invalid_argument("Mỗi update phải là object");
         }
-
         if (!item.contains("sku"))
         {
             throw std::invalid_argument("Update thiếu trường sku");
         }
-
         if (!item["sku"].is_string())
         {
             throw std::invalid_argument("sku phải là chuỗi");
@@ -125,7 +123,6 @@ nlohmann::json run_demo(const nlohmann::json &du_lieu_vao)
             {
                 throw std::invalid_argument("stock_after phải là số nguyên");
             }
-
             long long value = item["stock_after"].get<long long>();
             if (value < INT_MIN || value > INT_MAX)
             {
@@ -137,7 +134,6 @@ nlohmann::json run_demo(const nlohmann::json &du_lieu_vao)
                 throw std::invalid_argument("stock_after không được âm");
             }
         }
-
         std::string updated_at = std::to_string(fake_timestamp++);
         if (item.contains("updated_at"))
         {
@@ -147,9 +143,7 @@ nlohmann::json run_demo(const nlohmann::json &du_lieu_vao)
             }
             updated_at = item["updated_at"].get<std::string>();
         }
-
         RecentUpdate update;
-
         update.product_id = product_id;
         update.sku = sku;
         update.name = name;
@@ -159,7 +153,6 @@ nlohmann::json run_demo(const nlohmann::json &du_lieu_vao)
 
         recent_list.touch(update);
     }
-
     std::vector<RecentUpdate> snapshot = recent_list.snapshot();
     nlohmann::json result = nlohmann::json::array();
     for (const auto &update : snapshot)

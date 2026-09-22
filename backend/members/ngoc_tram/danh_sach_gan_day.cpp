@@ -147,7 +147,6 @@ namespace dsa::ngoc_tram
 
 namespace dsa::ngoc_tram
 {
-
     void RecentList::touch(const RecentUpdate &update)
     {
         if (update.sku.empty())
@@ -174,7 +173,6 @@ namespace dsa::ngoc_tram
             evict_tail();
         }
     }
-
     std::vector<RecentUpdate> RecentList::snapshot() const
     {
         std::vector<RecentUpdate> result;
@@ -186,7 +184,6 @@ namespace dsa::ngoc_tram
         return result;
     }
     std::size_t RecentList::size() const { return index_.size(); }
-
 } // namespace dsa::ngoc_tram
 
 #endif
