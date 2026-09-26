@@ -77,9 +77,10 @@ async function compile(member, optimized = release) {
 async function backendReady() {
   try {
     const response = await fetch("http://127.0.0.1:8080/api/health", {
-      signal: AbortSignal.timeout(500),
+      signal: AbortSignal.timeout(1000),
     });
-    return response.ok;
+    if (!response.ok || response.headers.get("X-DSA-Runtime") !== "C++") return false;
+    return (await response.json()).language === "C++";
   } catch {
     return false;
   }
@@ -100,12 +101,19 @@ async function runProject() {
 
   let backendProcess;
   if (!(await backendReady())) {
+    console.log("Đang nạp 10.000 sản phẩm và 10.000 đơn hàng vào C++...");
     backendProcess = spawn(executable, ["8080"], { cwd: root, stdio: "inherit" });
-    for (let attempt = 0; attempt < 50 && !(await backendReady()); attempt++) {
+    let ready = false;
+    for (let attempt = 0; attempt < 240 && !ready; attempt++) {
+      ready = await backendReady();
+      if (ready) break;
       if (backendProcess.exitCode !== null) throw new Error("Backend C++ không khởi động được.");
-      await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+      await new Promise((resolveWait) => setTimeout(resolveWait, 500));
     }
-    if (!(await backendReady())) throw new Error("Backend C++ chưa sẵn sàng ở cổng 8080.");
+    if (!ready) {
+      stopProcess(backendProcess);
+      throw new Error("Backend C++ chưa sẵn sàng sau thời gian chờ.");
+    }
   } else {
     console.log("Backend C++ đang chạy ở http://127.0.0.1:8080");
   }

@@ -45,6 +45,7 @@ private:
     std::string last_load_at_;
 
     void load();
+    void index_product(const Product& product);
     void add_log(const std::string& level, const std::string& source,
                  const std::string& message);
     nlohmann::json dashboard() const;
@@ -73,18 +74,14 @@ using Json = nlohmann::json;
 using Clock = std::chrono::steady_clock;
 volatile std::size_t benchmark_sink = 0;
 
-std::string lower(std::string value) {
-    for (char& character : value) {
-        character = static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
-    }
-    return value;
+std::string lower(std::string v) {
+    for (char& c : v) c = static_cast<char>(std::tolower((unsigned char)c));
+    return v;
 }
 
-std::string upper(std::string value) {
-    for (char& character : value) {
-        character = static_cast<char>(std::toupper(static_cast<unsigned char>(character)));
-    }
-    return value;
+std::string upper(std::string v) {
+    for (char& c : v) c = static_cast<char>(std::toupper((unsigned char)c));
+    return v;
 }
 
 std::vector<std::string> words(const std::string& value) {
@@ -127,10 +124,8 @@ std::time_t parse_utc(const std::string& value) {
 #endif
 }
 
-std::string priority_text(Priority priority) {
-    if (priority == Priority::urgent) return "urgent";
-    if (priority == Priority::high) return "high";
-    return "normal";
+std::string priority_text(Priority p) {
+    return p == Priority::urgent ? "urgent" : p == Priority::high ? "high" : "normal";
 }
 
 Priority parse_priority(const std::string& value) {
@@ -140,19 +135,14 @@ Priority parse_priority(const std::string& value) {
     throw std::invalid_argument("Mức ưu tiên không hợp lệ");
 }
 
-std::string status_text(OrderStatus status) {
-    if (status == OrderStatus::queued) return "queued";
-    if (status == OrderStatus::processing) return "processing";
-    if (status == OrderStatus::completed) return "completed";
-    return "cancelled";
+std::string status_text(OrderStatus s) {
+    return s == OrderStatus::queued ? "queued" : s == OrderStatus::processing ? "processing"
+        : s == OrderStatus::completed ? "completed" : "cancelled";
 }
 
-std::string stock_status(const Product& product) {
-    if (product.stock == 0) return "out_of_stock";
-    if (product.reorder_level > 0 && product.stock <= product.reorder_level) {
-        return "low_stock";
-    }
-    return "in_stock";
+std::string stock_status(const Product& p) {
+    if (p.stock == 0) return "out_of_stock";
+    return (p.reorder_level > 0 && p.stock <= p.reorder_level) ? "low_stock" : "in_stock";
 }
 
 Json product_json(const Product& product) {
@@ -246,18 +236,7 @@ void WarehouseService::load() {
     trie_terms_ = 0;
     trie_max_depth_ = 0;
 
-    for (const Product& product : data_.products) {
-        products_.upsert(product.sku, product);
-        const std::string sku = lower(product.sku);
-        sku_trie_.insert(sku, product.sku);
-        ++trie_terms_;
-        trie_max_depth_ = std::max(trie_max_depth_, sku.size());
-        for (const std::string& word : words(product.name)) {
-            name_trie_.insert(word, product.sku);
-            ++trie_terms_;
-            trie_max_depth_ = std::max(trie_max_depth_, word.size());
-        }
-    }
+    for (const Product& product : data_.products) index_product(product);
     for (const Order& order : data_.orders) {
         orders_.upsert(order.order_code, order);
         if (order.status == OrderStatus::queued) queue_.push(order);
@@ -265,6 +244,17 @@ void WarehouseService::load() {
     }
     last_load_at_ = now_utc();
     add_log("info", "storage", "Đã nạp data_chinh vào các cấu trúc C++.");
+}
+
+void WarehouseService::index_product(const Product& product) {
+    products_.upsert(product.sku, product);
+    const auto add_term = [&](kim_ngan::Trie& trie, const std::string& term) {
+        trie.insert(term, product.sku);
+        ++trie_terms_;
+        trie_max_depth_ = std::max(trie_max_depth_, term.size());
+    };
+    add_term(sku_trie_, lower(product.sku));
+    for (const std::string& word : words(product.name)) add_term(name_trie_, word);
 }
 
 void WarehouseService::add_log(const std::string& level, const std::string& source,
@@ -385,25 +375,11 @@ nlohmann::json WarehouseService::create_product(const nlohmann::json& input) {
     }
     if (products_.find(sku)) throw std::invalid_argument("SKU đã tồn tại");
 
-    Product product;
-    product.id = "PRD-NEW-" + std::to_string(data_.products.size() + 1);
-    product.sku = sku;
-    product.name = name;
-    product.category = category;
-    product.stock = stock;
-    product.reorder_level = reorder;
-    product.created_at = now_utc();
-    product.updated_at = product.created_at;
+    const std::string created_at = now_utc();
+    Product product{"PRD-NEW-" + std::to_string(data_.products.size() + 1),
+                    sku, name, category, stock, reorder, created_at, created_at};
     data_.products.push_back(product);
-    products_.upsert(sku, product);
-    sku_trie_.insert(lower(sku), sku);
-    ++trie_terms_;
-    trie_max_depth_ = std::max(trie_max_depth_, sku.size());
-    for (const std::string& word : words(name)) {
-        name_trie_.insert(word, sku);
-        ++trie_terms_;
-        trie_max_depth_ = std::max(trie_max_depth_, word.size());
-    }
+    index_product(product);
     add_log("success", "hash_table", "Đã thêm sản phẩm " + sku + ".");
     return product_json(product);
 }
@@ -436,24 +412,14 @@ nlohmann::json WarehouseService::update_stock(const nlohmann::json& input) {
             break;
         }
     }
-    StockMovement movement;
-    movement.id = "MOV-" + std::to_string(movements_.size() + 1);
-    movement.product_id = product->id;
-    movement.sku = sku;
-    movement.delta = delta;
-    movement.stock_after = product->stock;
-    movement.reason = reason;
-    movement.note = input.value("note", "");
-    movement.created_at = product->updated_at;
+    StockMovement movement{
+        "MOV-" + std::to_string(movements_.size() + 1), product->id, sku,
+        delta, product->stock, reason, input.value("note", ""), product->updated_at
+    };
     movements_.insert(movements_.begin(), movement);
 
-    RecentUpdate update;
-    update.product_id = product->id;
-    update.sku = sku;
-    update.name = product->name;
-    update.delta = delta;
-    update.stock_after = product->stock;
-    update.updated_at = product->updated_at;
+    RecentUpdate update{product->id, sku, product->name, delta,
+                        product->stock, product->updated_at};
     recent_.touch(update);
     add_log("success", "recent_list", "Đã cập nhật tồn kho " + sku + ".");
     return {
@@ -515,14 +481,11 @@ nlohmann::json WarehouseService::enqueue(const nlohmann::json& input) {
     if (!input.contains("items") || !input["items"].is_array() || input["items"].empty()) {
         throw std::invalid_argument("Đơn hàng phải có sản phẩm");
     }
-    Order order;
-    order.id = "ORD-NEW-" + std::to_string(data_.orders.size() + 1);
-    order.order_code = code;
-    order.priority = parse_priority(input.value("priority", ""));
-    order.sequence_number = ++next_sequence_;
-    order.status = OrderStatus::queued;
-    order.note = input.value("note", "");
-    order.created_at = now_utc();
+    Order order{
+        "ORD-NEW-" + std::to_string(data_.orders.size() + 1), code,
+        parse_priority(input.value("priority", "")), ++next_sequence_, {},
+        OrderStatus::queued, input.value("note", ""), now_utc()
+    };
     for (const auto& value : input["items"]) {
         const std::string sku = upper(value.value("sku", ""));
         const int quantity = value.value("quantity", 0);

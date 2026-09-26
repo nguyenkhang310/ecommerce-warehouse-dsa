@@ -12,97 +12,71 @@
 #include <vector>
 
 namespace dsa::nguyen_khang {
-
-// Phần của Khang: Merge Sort + Binary Search (đo thật), Linear Search (đối chứng).
-// Chỉ dùng để nạp dữ liệu và đo đối chứng, không thay MC1/MC2/TP2/TP3.
-
 namespace {
 
-void merge_ranges(std::vector<Product>& products, std::vector<Product>& temporary,
-                  std::size_t left, std::size_t middle, std::size_t right) {
-    std::size_t first = left;
-    std::size_t second = middle;
-    std::size_t output = left;
-
-    while (first < middle && second < right) {
-        if (products[first].sku <= products[second].sku) {
-            temporary[output++] = products[first++];
-        } else {
-            temporary[output++] = products[second++];
-        }
-    }
-    while (first < middle) temporary[output++] = products[first++];
-    while (second < right) temporary[output++] = products[second++];
-    for (std::size_t i = left; i < right; ++i) products[i] = temporary[i];
-}
-
-void merge_sort_range(std::vector<Product>& products, std::vector<Product>& temporary,
-                      std::size_t left, std::size_t right) {
-    if (right - left <= 1) return;
-    const std::size_t middle = left + (right - left) / 2;
-    merge_sort_range(products, temporary, left, middle);
-    merge_sort_range(products, temporary, middle, right);
-    merge_ranges(products, temporary, left, middle, right);
-}
-
-std::string current_utc_time() {
-    const std::time_t value = std::time(nullptr);
-    std::tm utc{};
-#ifdef _WIN32
-    gmtime_s(&utc, &value);
-#else
-    gmtime_r(&value, &utc);
-#endif
-    std::ostringstream output;
-    output << std::put_time(&utc, "%Y-%m-%dT%H:%M:%SZ");
-    return output.str();
-}
-
+using Clock = std::chrono::steady_clock;
 volatile std::size_t benchmark_sink = 0;
 
-// Đo thời gian tìm trung bình một truy vấn (ms). Cộng dồn checksum để
-// trình biên dịch không loại bỏ phép đo. Mọi cách tìm đều đo chung ở đây.
-template <typename TimKiem>
-double measure_search(TimKiem tim_kiem, const std::vector<std::string>& queries) {
-    using Clock = std::chrono::steady_clock;
-    std::size_t checksum = 0;
-    const auto start = Clock::now();
-    for (const std::string& query : queries) checksum += tim_kiem(query);
-    benchmark_sink += checksum;
-    return std::chrono::duration<double, std::milli>(Clock::now() - start).count()
-        / static_cast<double>(queries.size());
+// Trộn hai đoạn đã sắp xếp: [left, middle) và [middle, right).
+void merge(std::vector<Product>& products, std::vector<Product>& temp,
+           std::size_t left, std::size_t middle, std::size_t right) {
+    std::size_t i = left, j = middle, k = left;
+
+    while (i < middle && j < right) {
+        if (products[i].sku <= products[j].sku) temp[k++] = products[i++];
+        else temp[k++] = products[j++];
+    }
+    while (i < middle) temp[k++] = products[i++];
+    while (j < right) temp[k++] = products[j++];
+    for (std::size_t p = left; p < right; ++p) products[p] = temp[p];
+}
+
+void merge_sort(std::vector<Product>& products, std::vector<Product>& temp,
+                std::size_t left, std::size_t right) {
+    if (right - left <= 1) return;
+    const std::size_t middle = left + (right - left) / 2;
+    merge_sort(products, temp, left, middle);
+    merge_sort(products, temp, middle, right);
+    merge(products, temp, left, middle, right);
+}
+
+std::string utc_now() {
+    const std::time_t now = std::time(nullptr);
+    std::tm utc{};
+#ifdef _WIN32
+    gmtime_s(&utc, &now);
+#else
+    gmtime_r(&now, &utc);
+#endif
+    std::ostringstream text;
+    text << std::put_time(&utc, "%Y-%m-%dT%H:%M:%SZ");
+    return text.str();
 }
 
 } // namespace
 
-// Sắp tại chỗ theo SKU tăng dần. Ổn định: khóa bằng nhau giữ nguyên thứ tự cũ.
 void merge_sort_by_sku(std::vector<Product>& products) {
     if (products.size() < 2) return;
-    std::vector<Product> temporary(products.size());
-    merge_sort_range(products, temporary, 0, products.size());
+    std::vector<Product> temp(products.size());
+    merge_sort(products, temp, 0, products.size());
 }
 
-// Đầu vào phải đã sắp đúng quy tắc so sánh SKU. Trả vị trí hoặc rỗng.
 std::optional<std::size_t> binary_search_by_sku(
-    const std::vector<Product>& sorted_products, const std::string& sku) {
-    std::size_t left = 0;
-    std::size_t right = sorted_products.size();
-
+    const std::vector<Product>& products, const std::string& sku) {
+    std::size_t left = 0, right = products.size();
     while (left < right) {
         const std::size_t middle = left + (right - left) / 2;
-        if (sorted_products[middle].sku == sku) return middle;
-        if (sorted_products[middle].sku < sku) left = middle + 1;
+        if (products[middle].sku == sku) return middle;
+        if (products[middle].sku < sku) left = middle + 1;
         else right = middle;
     }
     return std::nullopt;
 }
 
-// Đối chứng: quét lần lượt, chạy được trên dữ liệu chưa sắp.
 std::optional<std::size_t> linear_search_by_sku(
     const std::vector<Product>& products, const std::string& sku) {
-    for (std::size_t i = 0; i < products.size(); ++i) {
+    for (std::size_t i = 0; i < products.size(); ++i)
         if (products[i].sku == sku) return i;
-    }
     return std::nullopt;
 }
 
@@ -113,62 +87,62 @@ std::vector<BenchmarkPoint> run_benchmark(
     if (iterations == 0) throw std::invalid_argument("iterations phải lớn hơn 0");
     if (sizes.empty()) throw std::invalid_argument("sizes không được rỗng");
 
-    using Clock = std::chrono::steady_clock;
-    std::vector<BenchmarkPoint> points;
-
+    std::vector<BenchmarkPoint> results;
     for (const std::size_t size : sizes) {
         if (size == 0 || size > products.size())
             throw std::invalid_argument("size phải nằm trong dữ liệu đã nạp");
 
-        const auto end = products.begin() + static_cast<std::ptrdiff_t>(size);
-        std::vector<Product> original(products.begin(), end);
+        std::vector<Product> original(products.begin(), products.begin() + size);
         std::vector<Product> sorted = original;
 
-        const auto sort_start = Clock::now();
+        const auto start = Clock::now();
         merge_sort_by_sku(sorted);
         const double preparation_ms =
-            std::chrono::duration<double, std::milli>(Clock::now() - sort_start).count();
-        for (std::size_t i = 1; i < sorted.size(); ++i) {
+            std::chrono::duration<double, std::milli>(Clock::now() - start).count();
+
+        for (std::size_t i = 1; i < sorted.size(); ++i)
             if (sorted[i - 1].sku > sorted[i].sku)
                 throw std::runtime_error("Merge Sort cho kết quả sai thứ tự");
-        }
 
-        // Cùng một bộ truy vấn cho cả hai cách: 4/5 tìm thấy, 1/5 không thấy.
+        // Cả hai cách tìm dùng chung truy vấn: 4 lần có SKU thật, 1 lần không có.
         std::vector<std::string> queries;
         queries.reserve(iterations);
-        for (std::size_t i = 0; i < iterations; ++i) {
-            if (i % 5 == 0) queries.push_back("__SKU_KHONG_TON_TAI__");
-            else queries.push_back(original[(i * 37) % size].sku);
-        }
+        for (std::size_t i = 0; i < iterations; ++i)
+            queries.push_back(i % 5 == 0 ? "__SKU_KHONG_TON_TAI__"
+                                          : original[(i * 37) % size].sku);
 
         if (warmup) {
-            benchmark_sink = binary_search_by_sku(sorted, queries.front()).value_or(size);
-            benchmark_sink = linear_search_by_sku(original, queries.front()).value_or(size);
+            benchmark_sink = binary_search_by_sku(sorted, queries[0]).value_or(size);
+            benchmark_sink = linear_search_by_sku(original, queries[0]).value_or(size);
         }
 
-        const auto tim_nhi_phan = [&](const std::string& query) {
-            return binary_search_by_sku(sorted, query).value_or(size);
-        };
-        const auto tim_tuyen_tinh = [&](const std::string& query) {
-            return linear_search_by_sku(original, query).value_or(size);
-        };
-        const double binary_ms = measure_search(tim_nhi_phan, queries);
-        const double linear_ms = measure_search(tim_tuyen_tinh, queries);
+        std::size_t checksum = 0;
+        auto search_start = Clock::now();
+        for (const std::string& sku : queries)
+            checksum += binary_search_by_sku(sorted, sku).value_or(size);
+        const double binary_ms = std::chrono::duration<double, std::milli>(
+            Clock::now() - search_start).count() / iterations;
 
-        for (const std::string& query : queries) {
-            const auto binary = binary_search_by_sku(sorted, query);
-            const auto linear = linear_search_by_sku(original, query);
-            if (binary.has_value() != linear.has_value()
-                || (binary && sorted[*binary].sku != query)
-                || (linear && original[*linear].sku != query)) {
+        search_start = Clock::now();
+        for (const std::string& sku : queries)
+            checksum += linear_search_by_sku(original, sku).value_or(size);
+        const double linear_ms = std::chrono::duration<double, std::milli>(
+            Clock::now() - search_start).count() / iterations;
+        benchmark_sink += checksum; // Tránh trình biên dịch bỏ phép đo.
+
+        // Hai cách phải cùng tìm thấy hoặc cùng không tìm thấy từng SKU.
+        for (const std::string& sku : queries) {
+            const auto a = binary_search_by_sku(sorted, sku);
+            const auto b = linear_search_by_sku(original, sku);
+            if (a.has_value() != b.has_value() || (a && sorted[*a].sku != sku)
+                || (b && original[*b].sku != sku))
                 throw std::runtime_error("Binary Search và Linear Search cho kết quả khác nhau");
-            }
         }
 
-        points.push_back({operation, size, iterations, preparation_ms,
-                          binary_ms, linear_ms, current_utc_time()});
+        results.push_back({operation, size, iterations, preparation_ms,
+                           binary_ms, linear_ms, utc_now()});
     }
-    return points;
+    return results;
 }
 
 } // namespace dsa::nguyen_khang
