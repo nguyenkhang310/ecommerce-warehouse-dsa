@@ -4,7 +4,6 @@ import {
   Binary,
   ChartNoAxesCombined,
   Database,
-  FlaskConical,
   LayoutDashboard,
   ListOrdered,
   PackagePlus,
@@ -25,14 +24,13 @@ import {
 import { inventoryApi, orderApi } from "@/services/api";
 import { formatNumber } from "@/lib/format";
 
-const navItems = [
+export const NAV_ITEMS = [
   { label: "Tổng quan", to: "/", icon: LayoutDashboard },
   { label: "Sản phẩm", to: "/products", icon: PackageSearch },
   { label: "Hàng đợi đơn", to: "/orders", icon: ListOrdered },
   { label: "Trực quan DSA", to: "/visualizer", icon: Binary },
   { label: "Hiệu năng", to: "/performance", icon: ChartNoAxesCombined },
   { label: "Dữ liệu & hệ thống", to: "/system", icon: Database },
-  { label: "Demo C++", to: "/cpp", icon: FlaskConical },
 ] as const;
 
 export function CommandPalette({
@@ -52,14 +50,14 @@ export function CommandPalette({
   }, [query]);
 
   const prefix = useQuery({
-    queryKey: ["cmd-prefix", debounced],
-    queryFn: () => inventoryApi.searchProductsByPrefix(debounced, "auto"),
+    queryKey: ["cmd-prefix", debounced.trim()],
+    queryFn: () => inventoryApi.searchProductsByPrefix(debounced.trim(), "auto"),
     enabled: open && debounced.trim().length > 0,
   });
 
   const exact = useQuery({
-    queryKey: ["cmd-order", debounced],
-    queryFn: () => orderApi.lookupOrderExact(debounced),
+    queryKey: ["cmd-order", debounced.trim()],
+    queryFn: () => orderApi.lookupOrderExact(debounced.trim()),
     enabled: open && debounced.trim().toUpperCase().startsWith("ORD"),
   });
 
@@ -67,6 +65,11 @@ export function CommandPalette({
     onOpenChange(false);
     setQuery("");
     navigate({ to });
+  };
+
+  const close = () => {
+    onOpenChange(false);
+    setQuery("");
   };
 
   return (
@@ -79,7 +82,7 @@ export function CommandPalette({
       <CommandList>
         <CommandEmpty>Không tìm thấy kết quả phù hợp.</CommandEmpty>
         <CommandGroup heading="Điều hướng">
-          {navItems.map((item) => (
+          {NAV_ITEMS.map((item) => (
             <CommandItem key={item.to} value={item.label} onSelect={() => go(item.to)}>
               <item.icon className="h-4 w-4" aria-hidden />
               {item.label}
@@ -92,7 +95,14 @@ export function CommandPalette({
             <CommandSeparator />
             <CommandGroup heading="Sản phẩm gợi ý">
               {prefix.data.entries.map((p) => (
-                <CommandItem key={p.sku} value={p.sku} onSelect={() => go("/products")}>
+                <CommandItem
+                  key={p.sku}
+                  value={`${p.sku} ${p.name}`}
+                  onSelect={() => {
+                    close();
+                    void navigate({ to: "/products", search: { sku: p.sku } });
+                  }}
+                >
                   <PackageSearch className="h-4 w-4" aria-hidden />
                   <span className="font-mono text-xs">{p.sku}</span>
                   <span className="truncate">{p.name}</span>
@@ -109,7 +119,16 @@ export function CommandPalette({
           <>
             <CommandSeparator />
             <CommandGroup heading="Đơn hàng">
-              <CommandItem value={exact.data.order.orderCode} onSelect={() => go("/orders")}>
+              <CommandItem
+                value={exact.data.order.orderCode}
+                onSelect={() => {
+                  close();
+                  void navigate({
+                    to: "/orders",
+                    search: { order: exact.data.order!.orderCode },
+                  });
+                }}
+              >
                 <ListOrdered className="h-4 w-4" aria-hidden />
                 <span className="font-mono text-xs">{exact.data.order.orderCode}</span>
                 <span className="ml-auto text-xs text-muted-foreground">
@@ -122,19 +141,31 @@ export function CommandPalette({
 
         <CommandSeparator />
         <CommandGroup heading="Thao tác nhanh">
-          <CommandItem value="tao-don" onSelect={() => go("/orders")}>
+          <CommandItem
+            value="tao-don"
+            onSelect={() => {
+              close();
+              void navigate({ to: "/orders", search: { action: "create" } });
+            }}
+          >
             <PackagePlus className="h-4 w-4" aria-hidden />
             Tạo đơn mới
           </CommandItem>
           <CommandItem value="cap-nhat-ton-kho" onSelect={() => go("/products")}>
             <Warehouse className="h-4 w-4" aria-hidden />
-            Cập nhật tồn kho
+            Mở danh mục sản phẩm
           </CommandItem>
           <CommandItem value="benchmark" onSelect={() => go("/performance")}>
             <ChartNoAxesCombined className="h-4 w-4" aria-hidden />
-            Đo hiệu năng
+            Mở đánh giá hiệu năng
           </CommandItem>
-          <CommandItem value="heap-visualizer" onSelect={() => go("/visualizer")}>
+          <CommandItem
+            value="heap-visualizer"
+            onSelect={() => {
+              close();
+              void navigate({ to: "/visualizer", search: { tab: "heap" } });
+            }}
+          >
             <PlayCircle className="h-4 w-4" aria-hidden />
             Mở trực quan hàng đợi ưu tiên
           </CommandItem>

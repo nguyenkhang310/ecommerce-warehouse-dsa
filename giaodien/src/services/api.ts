@@ -28,7 +28,7 @@ async function call<T>(action: string, data: object = {}, signal?: AbortSignal):
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
-    throw new Error("Không kết nối được backend C++. Hãy chạy npm run dev.");
+    throw new Error("Không kết nối được hệ thống. Vui lòng thử lại.");
   }
   const body = (await response.json()) as {
     ok: boolean;
@@ -36,12 +36,12 @@ async function call<T>(action: string, data: object = {}, signal?: AbortSignal):
     error?: { message?: string };
   };
   if (!response.ok || !body.ok) {
-    throw new Error(body.error?.message ?? "Backend C++ xử lý thất bại.");
+    throw new Error(body.error?.message ?? "Không thể xử lý yêu cầu.");
   }
   return body.data as T;
 }
 
-export interface ProductQuery {
+interface ProductQuery {
   category?: string;
   status?: string;
 }
@@ -78,7 +78,6 @@ export const orderApi = {
   getQueue: (params: { priority?: Priority | "all" } = {}) => call<Order[]>("queue", params),
   lookupOrderExact: (orderCode: string) =>
     call<{ order: Order | null; trace: LookupTrace }>("order_lookup", { orderCode }),
-  peekNext: async () => (await call<Order[]>("next_orders", { limit: 1 }))[0] ?? null,
   getNextCandidates: (limit = 5) => call<Order[]>("next_orders", { limit }),
   enqueue: (payload: {
     orderCode: string;
@@ -103,7 +102,7 @@ export const visualizerApi = {
     }>("recent_snapshot"),
 };
 
-export interface BenchmarkRunPayload {
+interface BenchmarkRunPayload {
   operation: BenchmarkPoint["operation"];
   sizes: number[];
   iterations: number;
@@ -164,5 +163,3 @@ export const systemApi = {
     return { ok: true, latencyMs: Number((performance.now() - start).toFixed(2)) };
   },
 };
-
-export type { Order, Product };

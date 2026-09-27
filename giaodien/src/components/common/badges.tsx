@@ -3,14 +3,14 @@ import type { Priority, StockStatus } from "@/core/types";
 import { priorityLabel, statusLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export function PriorityBadge({ priority, className }: { priority: Priority; className?: string }) {
+export function PriorityBadge({ priority }: { priority: Priority }) {
   const map = {
     urgent: {
       cls: "border-red-200 bg-red-50 text-red-700",
       Icon: Flame,
     },
     high: {
-      cls: "border-amber-200 bg-amber-50 text-amber-700",
+      cls: "border-primary/20 bg-primary/10 text-primary",
       Icon: ChevronsUp,
     },
     normal: {
@@ -22,9 +22,8 @@ export function PriorityBadge({ priority, className }: { priority: Priority; cla
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
+        "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold",
         cls,
-        className,
       )}
     >
       <Icon className="h-3.5 w-3.5" aria-hidden />
@@ -36,11 +35,11 @@ export function PriorityBadge({ priority, className }: { priority: Priority; cla
 export function StockStatusBadge({ status }: { status: StockStatus }) {
   const map = {
     in_stock: {
-      cls: "border-green-200 bg-green-50 text-green-700",
+      cls: "border-primary/20 bg-primary/10 text-primary",
       Icon: CheckCircle2,
     },
     low_stock: {
-      cls: "border-amber-200 bg-amber-50 text-amber-700",
+      cls: "border-destructive/20 bg-destructive/5 text-destructive",
       Icon: TriangleAlert,
     },
     out_of_stock: {
@@ -52,7 +51,7 @@ export function StockStatusBadge({ status }: { status: StockStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
+        "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold",
         cls,
       )}
     >
@@ -64,25 +63,11 @@ export function StockStatusBadge({ status }: { status: StockStatus }) {
 
 export function ComplexityChip({
   children,
-  tone = "indigo",
 }: {
   children: React.ReactNode;
-  tone?: "indigo" | "cyan" | "emerald" | "amber";
 }) {
-  const map = {
-    indigo:
-      "border-[#0a84ff]/20 bg-[#0a84ff]/9 text-[#0071e3]",
-    cyan: "border-cyan-400/20 bg-cyan-400/9 text-cyan-700",
-    emerald: "border-[#34c759]/20 bg-[#34c759]/10 text-[#16843a]",
-    amber: "border-[#ff9f0a]/20 bg-[#ff9f0a]/10 text-[#b25000]",
-  } as const;
   return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-md border px-2 py-0.5 font-mono text-[11px] font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-sm tnum",
-        map[tone],
-      )}
-    >
+    <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[11px] font-medium text-slate-600 tnum">
       {children}
     </span>
   );

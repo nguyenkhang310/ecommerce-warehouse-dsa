@@ -1,14 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
-  Binary,
-  ChartNoAxesCombined,
-  ChevronLeft,
-  Database,
-  FlaskConical,
-  LayoutDashboard,
-  ListOrdered,
   Menu,
-  PackageSearch,
+  PanelLeftClose,
   PanelLeftOpen,
   Presentation,
   Search,
@@ -16,31 +9,21 @@ import {
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
-import { CommandPalette } from "@/components/layout/CommandPalette";
-import { Button } from "@/components/ui/button";
+import { CommandPalette, NAV_ITEMS } from "@/components/layout/CommandPalette";
+import { Button } from "@/components/ui/basic";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DEMO_STEPS, useDefenseMode } from "@/context/defense-mode";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { label: "Tổng quan", to: "/", icon: LayoutDashboard },
-  { label: "Sản phẩm", to: "/products", icon: PackageSearch },
-  { label: "Hàng đợi đơn", to: "/orders", icon: ListOrdered },
-  { label: "Trực quan DSA", to: "/visualizer", icon: Binary },
-  { label: "Hiệu năng", to: "/performance", icon: ChartNoAxesCombined },
-  { label: "Dữ liệu & hệ thống", to: "/system", icon: Database },
-  { label: "Demo C++", to: "/cpp", icon: FlaskConical },
-] as const;
-
-const MOBILE_NAV = [NAV[0], NAV[1], NAV[2], NAV[3]];
+const MOBILE_NAV = NAV_ITEMS.slice(0, 4);
 
 function UniversityLogo({ compact = false }: { compact?: boolean }) {
   return (
     <div
       className={cn(
-        "grid shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-[0_4px_12px_rgba(32,102,149,0.1)]",
-        compact ? "h-9 w-9 p-1.5" : "h-11 w-11 p-1.5",
+        "grid shrink-0 place-items-center",
+        compact ? "h-9 w-9" : "h-11 w-11",
       )}
     >
       <img
@@ -59,84 +42,77 @@ function SidebarContent({
   collapsed: boolean;
   onNavigate?: () => void;
 }) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
   return (
-    <div className="relative flex h-full flex-col overflow-hidden bg-transparent text-sidebar-foreground">
-      <span
-        className="pointer-events-none absolute -top-20 -right-16 h-56 w-56 rounded-full bg-sky-200/30 blur-3xl"
-        aria-hidden
-      />
-      <span
-        className="pointer-events-none absolute top-52 -left-24 h-48 w-48 rounded-full bg-indigo-100/22 blur-3xl"
-        aria-hidden
-      />
-
-      <div className={cn("relative z-10 p-3 pb-2", collapsed && "px-2")}>
-        <div
-          className={cn(
-            "glass-control flex min-h-16 items-center gap-3 rounded-lg border p-2.5",
-            collapsed &&
-              "mx-auto h-11 min-h-0 w-11 justify-center border-0 bg-transparent p-0 shadow-none backdrop-blur-none",
-          )}
-        >
-          <UniversityLogo compact={collapsed} />
-          {!collapsed ? (
-            <div className="min-w-0">
-              <p className="truncate text-[15px] font-semibold tracking-[-0.015em] text-sidebar-foreground">
+    <div className="flex h-full flex-col overflow-hidden bg-white text-sidebar-foreground">
+      <div className={cn("px-3 pt-3 pb-2", collapsed && "px-2")}>
+        {collapsed ? (
+          <div className="mx-auto grid h-12 w-12 place-items-center">
+            <UniversityLogo compact />
+          </div>
+        ) : (
+          <div className="flex h-14 items-center gap-3 px-1">
+            <UniversityLogo />
+            <div className="min-w-0 border-l border-slate-200 pl-3">
+              <p className="truncate text-[16px] font-semibold tracking-[-0.02em] text-slate-950">
                 Quản lý kho
               </p>
-              <p className="mt-1 truncate text-[10px] font-semibold tracking-[0.13em] text-muted-foreground uppercase">
-                HCM-UTE · Đồ án DSA
+              <p className="mt-1 flex items-center gap-1.5 whitespace-nowrap text-[9px] font-semibold tracking-[0.06em] uppercase">
+                <span className="text-primary">HCM-UTE</span>
+                <span className="text-slate-300">•</span>
+                <span className="text-slate-400">Đồ án DSA</span>
               </p>
             </div>
-          ) : null}
-        </div>
+          </div>
+        )}
       </div>
 
       {!collapsed ? (
-        <p className="relative z-10 px-5 pt-4 pb-2 text-[10px] font-semibold tracking-[0.16em] text-muted-foreground/72 uppercase">
-          Menu
+        <p className="px-5 pt-5 pb-2 text-[10px] font-semibold tracking-[0.14em] text-slate-400 uppercase">
+          Điều hướng
         </p>
       ) : (
-        <div className="relative z-10 h-3" />
+        <div className="h-3" />
       )}
 
-      <nav className="relative z-10 flex-1 space-y-1 px-3" aria-label="Menu chính">
-        {NAV.map((item) => (
-          <Link
-            key={item.to}
-            to={item.to}
-            onClick={onNavigate}
-            activeOptions={{ exact: item.to === "/" }}
-            className={cn(
-              "relative flex min-h-12 items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/58 hover:text-sidebar-accent-foreground hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] focus-visible:ring-2 focus-visible:ring-sidebar-ring/45 focus-visible:outline-none",
-              collapsed && "justify-center px-1.5 hover:translate-x-0",
-            )}
-            activeProps={{
-              className:
-                "bg-gradient-to-r from-white/78 to-sky-100/58 text-sidebar-accent-foreground shadow-[0_7px_18px_rgba(42,139,197,0.1),inset_0_1px_0_rgba(255,255,255,0.92)] ring-1 ring-white/85 backdrop-blur-xl hover:translate-x-0 hover:from-white/88 hover:to-sky-100/68 [&_.sidebar-nav-icon]:bg-primary [&_.sidebar-nav-icon]:text-white [&_.sidebar-nav-icon]:shadow-none",
-            }}
-            title={collapsed ? item.label : undefined}
-          >
-            <span className="sidebar-nav-icon grid h-8 w-8 shrink-0 place-items-center rounded-md border border-sky-100/70 bg-sky-50/72 text-sky-700/65 transition-all">
-              <item.icon className="h-[17px] w-[17px]" strokeWidth={1.9} aria-hidden />
-            </span>
-            {!collapsed ? (
-              <span className="truncate tracking-[-0.005em]">{item.label}</span>
-            ) : (
-              <span className="sr-only">{item.label}</span>
-            )}
-          </Link>
-        ))}
+      <nav className="flex-1 space-y-0.5 px-3" aria-label="Menu chính">
+        {NAV_ITEMS.map((item) => {
+          const active = isActive(item.to);
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              onClick={onNavigate}
+              aria-current={active ? "page" : undefined}
+              title={collapsed ? item.label : undefined}
+              className={cn(
+                "relative flex h-10 items-center gap-2.5 rounded-md px-2.5 text-[13px] transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/25",
+                collapsed && "justify-center px-1.5",
+                active
+                  ? "bg-primary font-semibold text-white shadow-[0_3px_10px_-6px_rgb(2_83_132/0.6)] before:absolute before:inset-y-3 before:left-1 before:w-0.5 before:rounded-full before:bg-destructive"
+                  : "font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+              )}
+            >
+              <span
+                className={cn(
+                  "sidebar-nav-icon grid h-7 w-7 shrink-0 place-items-center rounded-md bg-primary/6 text-primary transition-colors",
+                  active && "bg-white/12 text-white",
+                )}
+              >
+                <item.icon className="h-[17px] w-[17px]" strokeWidth={2} aria-hidden />
+              </span>
+              {!collapsed ? (
+                <span className="truncate tracking-[-0.005em]">{item.label}</span>
+              ) : (
+                <span className="sr-only">{item.label}</span>
+              )}
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );
-}
-
-function breadcrumbFor(pathname: string) {
-  const item = NAV.find((navItem) =>
-    navItem.to === "/" ? pathname === "/" : pathname.startsWith(navItem.to),
-  );
-  return item?.label ?? "Tổng quan";
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -147,6 +123,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const defense = useDefenseMode();
   const step = DEMO_STEPS[defense.stepIndex];
+  const openDemoStep = (target: (typeof DEMO_STEPS)[number]) => {
+    if (target.target === "recent") {
+      void navigate({ to: "/visualizer", search: { tab: "recent" } });
+    } else if (target.target === "create") {
+      void navigate({ to: "/orders", search: { action: "create" } });
+    } else {
+      void navigate({ to: target.route });
+    }
+  };
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -160,7 +145,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="flex min-h-screen w-full bg-transparent">
+    <div className="flex min-h-screen w-full overflow-x-clip bg-background">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:text-primary-foreground"
@@ -170,16 +155,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <aside
         className={cn(
-          "glass-shell sticky top-0 z-40 hidden h-screen shrink-0 overflow-hidden border-r transition-[width] duration-200 lg:block",
-          collapsed ? "w-16" : "w-64",
+          "sticky top-0 z-40 hidden h-screen shrink-0 overflow-hidden border-r border-border bg-white transition-[width] duration-200 lg:block",
+          collapsed ? "w-16" : "w-60",
         )}
       >
         <SidebarContent collapsed={collapsed} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="glass-shell sticky top-0 z-30 h-16 border-b">
-          <div className="flex h-full items-center gap-2 px-4 lg:px-6">
+        <header className="sticky top-0 z-30 h-14 border-b border-border bg-white">
+          <div className="flex h-full items-center gap-2 px-4 lg:px-7">
             <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Mở menu">
@@ -188,7 +173,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </SheetTrigger>
               <SheetContent
                 side="left"
-                className="glass-popover w-64 border-sidebar-border p-0"
+                className="w-60 border-sidebar-border bg-white p-0"
               >
                 <SheetTitle className="sr-only">Điều hướng</SheetTitle>
                 <SidebarContent collapsed={false} onNavigate={() => setDrawerOpen(false)} />
@@ -211,25 +196,21 @@ export function AppShell({ children }: { children: ReactNode }) {
                   {collapsed ? (
                     <PanelLeftOpen className="h-5 w-5" aria-hidden />
                   ) : (
-                    <ChevronLeft className="h-5 w-5" aria-hidden />
+                    <PanelLeftClose className="h-5 w-5" aria-hidden />
                   )}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{collapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}</TooltipContent>
             </Tooltip>
 
-            <nav aria-label="Breadcrumb" className="hidden min-w-0 md:block">
-              <p className="truncate text-sm font-semibold">{breadcrumbFor(pathname)}</p>
-            </nav>
-
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
-              className="glass-control ml-auto hidden h-10 w-full max-w-[370px] items-center gap-2 rounded-md border px-3 text-left text-sm text-muted-foreground transition-all hover:border-primary/30 hover:bg-white/76 focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none sm:flex"
+              className="ml-auto hidden h-9 w-full max-w-[340px] items-center gap-2 rounded-md border border-input bg-white px-3 text-left text-sm text-slate-500 transition-colors hover:border-primary/50 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/15 focus-visible:outline-none sm:flex"
             >
               <Search className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="truncate">Tìm SKU hoặc mã đơn</span>
-              <kbd className="ml-auto rounded-md border border-border/80 bg-white/80 px-1.5 py-0.5 text-[10px] font-medium shadow-sm">
+              <span className="truncate">Tìm SKU hoặc mã đơn…</span>
+              <kbd className="ml-auto rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
                 Ctrl K
               </kbd>
             </button>
@@ -284,7 +265,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       const nextStep =
                         DEMO_STEPS[Math.min(DEMO_STEPS.length - 1, defense.stepIndex + 1)];
                       defense.next();
-                      navigate({ to: nextStep.route });
+                      openDemoStep(nextStep);
                     }}
                     disabled={defense.stepIndex === DEMO_STEPS.length - 1}
                   >
@@ -301,7 +282,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   className="ml-auto"
                   onClick={() => {
                     defense.startDemo();
-                    navigate({ to: DEMO_STEPS[0].route });
+                    openDemoStep(DEMO_STEPS[0]);
                   }}
                 >
                   Bắt đầu trình diễn
@@ -313,28 +294,34 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <main
           id="main-content"
-          className="w-full flex-1 px-4 pt-7 pb-[calc(7rem+env(safe-area-inset-bottom))] lg:px-8 lg:pb-10"
+          className="mx-auto w-full max-w-[1600px] flex-1 px-4 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:px-8 lg:pt-7 lg:pb-10"
         >
           {children}
         </main>
       </div>
 
       <nav
-        className="glass-shell fixed inset-x-3 bottom-[calc(.75rem+env(safe-area-inset-bottom))] z-30 grid grid-cols-4 rounded-lg border px-2 py-1.5 md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white px-2 pt-1 pb-[calc(.35rem+env(safe-area-inset-bottom))] md:hidden"
         aria-label="Menu nhanh"
       >
-        {MOBILE_NAV.map((item) => (
-          <Link
-            key={item.to}
-            to={item.to}
-            activeOptions={{ exact: item.to === "/" }}
-            className="flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors"
-            activeProps={{ className: "bg-accent text-primary" }}
-          >
-            <item.icon className="h-5 w-5" aria-hidden />
-            <span className="truncate">{item.label}</span>
-          </Link>
-        ))}
+        {MOBILE_NAV.map((item) => {
+          const active =
+            item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex flex-col items-center gap-0.5 border-t-2 border-transparent px-1 py-1.5 text-[10px] font-medium transition-colors",
+                active ? "border-primary font-semibold text-primary" : "text-slate-500",
+              )}
+            >
+              <item.icon className="h-5 w-5" aria-hidden />
+              <span className="truncate">{item.label}</span>
+            </Link>
+          );
+        })}
       </nav>
 
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />

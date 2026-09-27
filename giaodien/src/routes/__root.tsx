@@ -9,7 +9,7 @@ import {
 import { AppShell } from "@/components/layout/AppShell";
 import { DefenseModeProvider } from "@/context/defense-mode";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/basic";
 
 function NotFoundComponent() {
   return (

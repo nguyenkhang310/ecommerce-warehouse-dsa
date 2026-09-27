@@ -27,7 +27,7 @@ export function HeapTree({
   }
 
   return (
-    <div className="grid-lab overflow-x-auto rounded-xl border border-border p-4">
+    <div className="overflow-x-auto rounded-md border border-border bg-white p-4">
       <div className="min-w-[640px] space-y-6">
         {levels.map((level, li) => (
           <div key={li} className="flex items-start justify-center gap-3">
@@ -35,7 +35,7 @@ export function HeapTree({
               <div
                 key={node.orderCode}
                 className={cn(
-                  "min-w-[128px] rounded-xl border-2 px-3 py-2 text-center transition-all",
+                  "min-w-[128px] rounded-md border px-3 py-2 text-center transition-colors",
                   toneByPriority[node.priority],
                   node.index === 0 && "ring-2 ring-primary ring-offset-2 ring-offset-background",
                   highlight === node.orderCode && "border-primary bg-primary/15",

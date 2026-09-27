@@ -1,5 +1,5 @@
 import { HelpCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/basic";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDefenseMode } from "@/context/defense-mode";
 

@@ -15,17 +15,19 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+  Button,
+  Checkbox,
+  Input,
+  Label,
+  Progress,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/basic";
 import {
   Select,
   SelectContent,
@@ -33,14 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ErrorState, LoadingBlock } from "@/components/common/states";
 import { benchmarkApi } from "@/services/api";
@@ -48,20 +42,7 @@ import { formatDateTime, formatNumber, operationLabel } from "@/lib/format";
 import type { BenchmarkPoint } from "@/core/types";
 
 export const Route = createFileRoute("/performance")({
-  head: () => ({
-    meta: [
-      { title: "Đánh giá hiệu năng — Quản lý kho" },
-      {
-        name: "description",
-        content: "So sánh giải pháp DSA của nhóm với phương pháp duyệt tuyến tính.",
-      },
-      { property: "og:title", content: "Đánh giá hiệu năng — Quản lý kho" },
-      {
-        property: "og:description",
-        content: "So sánh hiệu năng các cấu trúc dữ liệu.",
-      },
-    ],
-  }),
+  head: () => ({ meta: [{ title: "Đánh giá hiệu năng — Quản lý kho" }] }),
   component: PerformancePage,
 });
 
@@ -77,6 +58,12 @@ function PerformancePage() {
   const [focusSize, setFocusSize] = useState(10000);
   const [progress, setProgress] = useState(0);
   const runController = useRef<AbortController | null>(null);
+  const iterationCount = Number(iterations);
+  const validConfig =
+    sizes.length > 0 &&
+    Number.isInteger(iterationCount) &&
+    iterationCount >= 1 &&
+    iterationCount <= 1000;
 
   const history = useQuery({
     queryKey: ["bench-history"],
@@ -94,7 +81,7 @@ function PerformancePage() {
           {
             operation,
             sizes,
-            iterations: Number(iterations) || 100,
+            iterations: iterationCount,
             warmup,
           },
           controller.signal,
@@ -112,7 +99,7 @@ function PerformancePage() {
     },
     onError: (error) => {
       if (error instanceof DOMException && error.name === "AbortError") return;
-      toast.error("Đo thất bại, vui lòng thử lại.");
+      toast.error(error instanceof Error ? error.message : "Đo thất bại, vui lòng thử lại.");
     },
   });
 
@@ -127,22 +114,25 @@ function PerformancePage() {
 
   const focus = chartData.find((r) => r.size === focusSize) ?? chartData[chartData.length - 1];
   const speedup = focus ? focus.linear / focus.dsa : 0;
-  const baselineLabel =
-    operation === "initial_load"
-      ? "sắp xếp có sẵn của C++ (stable_sort)"
-      : operation === "heap_extract"
-        ? "quét toàn bộ hàng đợi"
-        : "quét toàn bộ danh sách";
-  const smallest = chartData[0];
-  const largest = chartData[chartData.length - 1];
+  const exportResults = async (format: "csv" | "json") => {
+    try {
+      await benchmarkApi.export(format);
+      toast.success(`Đã xuất kết quả ra file ${format.toUpperCase()}.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không xuất được kết quả.");
+    }
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title="Đánh giá hiệu năng"
-        description="So sánh giải pháp DSA của nhóm với phương pháp duyệt tuyến tính truyền thống."
         actions={
-          <Button onClick={() => run.mutate()} disabled={run.isPending} className="gap-1.5">
+          <Button
+            onClick={() => run.mutate()}
+            disabled={run.isPending || !validConfig}
+            className="gap-1.5"
+          >
             <Play className="h-4 w-4" aria-hidden />
             {run.isPending ? "Đang đo…" : "Bắt đầu đo"}
           </Button>
@@ -191,10 +181,17 @@ function PerformancePage() {
             <Label htmlFor="iters">Số lần lặp lại</Label>
             <Input
               id="iters"
+              type="number"
+              min={1}
+              max={1000}
+              step={1}
               inputMode="numeric"
               value={iterations}
               onChange={(e) => setIterations(e.target.value)}
             />
+            {!Number.isInteger(iterationCount) || iterationCount < 1 || iterationCount > 1000 ? (
+              <p className="text-xs text-destructive">Nhập số nguyên từ 1 đến 1000.</p>
+            ) : null}
           </div>
           <div className="space-y-1.5">
             <Label>Tùy chọn</Label>
@@ -204,6 +201,10 @@ function PerformancePage() {
             </label>
           </div>
         </div>
+
+        {sizes.length === 0 ? (
+          <p className="mt-3 text-xs text-destructive">Chọn ít nhất một kích thước dữ liệu.</p>
+        ) : null}
 
         {run.isPending || progress > 0 ? (
           <div className="mt-4 flex items-center gap-3">
@@ -234,7 +235,7 @@ function PerformancePage() {
         <ErrorState onRetry={() => history.refetch()} />
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-3">
             {[
               {
                 label: "Giải pháp DSA (trung bình)",
@@ -250,11 +251,6 @@ function PerformancePage() {
                 label: "Nhanh hơn",
                 value: `${speedup.toFixed(1)}x`,
                 hint: "So với duyệt tuyến tính",
-              },
-              {
-                label: "Độ ổn định khi tăng dữ liệu",
-                value: smallest && largest ? `${(largest.dsa / smallest.dsa).toFixed(2)}x` : "—",
-                hint: "Càng gần 1 càng ổn định",
               },
             ].map((c) => (
               <article key={c.label} className="surface-card p-4">
@@ -318,36 +314,6 @@ function PerformancePage() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Cả hai phương pháp chạy trên cùng tập dữ liệu, tối đa{" "}
-                {formatNumber(largest?.size ?? 0)} bản ghi. Đường liền là giải pháp DSA, đường đứt
-                nét là phương pháp đối chứng ({baselineLabel}).
-              </p>
-              <table className="mt-3 w-full text-xs">
-                <caption className="sr-only">Số liệu chi tiết của biểu đồ</caption>
-                <thead>
-                  <tr className="text-muted-foreground">
-                    <th scope="col" className="py-1 text-left">
-                      Số bản ghi
-                    </th>
-                    <th scope="col" className="py-1 text-right">
-                      Giải pháp DSA (ms)
-                    </th>
-                    <th scope="col" className="py-1 text-right">
-                      Duyệt tuyến tính (ms)
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {chartData.map((r) => (
-                    <tr key={r.size} className="border-t border-border">
-                      <td className="py-1 tnum">{formatNumber(r.size)}</td>
-                      <td className="py-1 text-right tnum">{r.dsa}</td>
-                      <td className="py-1 text-right tnum">{r.linear}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </section>
 
             <section className="surface-card p-5">
@@ -409,21 +375,6 @@ function PerformancePage() {
             </section>
           </div>
 
-          <section className="surface-card p-5">
-            <Accordion type="single" collapsible>
-              <AccordionItem value="method">
-                <AccordionTrigger>Phương pháp đo</AccordionTrigger>
-                <AccordionContent>
-                  <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                    <li>Sử dụng dữ liệu thực từ backend C++.</li>
-                    <li>Chạy khởi động trước, lặp nhiều lần rồi lấy giá trị trung bình.</li>
-                    <li>Hai phương pháp chạy trên cùng đầu vào để đảm bảo công bằng.</li>
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </section>
-
           <section className="surface-card overflow-hidden">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border p-4">
               <h2 className="truncate text-base font-semibold">Lịch sử đo</h2>
@@ -432,10 +383,7 @@ function PerformancePage() {
                   variant="outline"
                   size="sm"
                   className="gap-1.5"
-                  onClick={async () => {
-                    await benchmarkApi.export("csv");
-                    toast.success("Đã xuất kết quả ra file CSV.");
-                  }}
+                  onClick={() => void exportResults("csv")}
                 >
                   <Download className="h-4 w-4" aria-hidden />
                   CSV
@@ -444,10 +392,7 @@ function PerformancePage() {
                   variant="outline"
                   size="sm"
                   className="gap-1.5"
-                  onClick={async () => {
-                    await benchmarkApi.export("json");
-                    toast.success("Đã xuất kết quả ra file JSON.");
-                  }}
+                  onClick={() => void exportResults("json")}
                 >
                   <Download className="h-4 w-4" aria-hidden />
                   JSON

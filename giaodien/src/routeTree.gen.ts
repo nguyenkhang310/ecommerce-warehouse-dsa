@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as CppRouteImport } from './routes/cpp'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as PerformanceRouteImport } from './routes/performance'
 import { Route as ProductsRouteImport } from './routes/products'
@@ -20,11 +19,6 @@ import { Route as VisualizerRouteImport } from './routes/visualizer'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CppRoute = CppRouteImport.update({
-  id: '/cpp',
-  path: '/cpp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrdersRoute = OrdersRouteImport.update({
@@ -55,7 +49,6 @@ const VisualizerRoute = VisualizerRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/cpp': typeof CppRoute
   '/orders': typeof OrdersRoute
   '/performance': typeof PerformanceRoute
   '/products': typeof ProductsRoute
@@ -64,7 +57,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/cpp': typeof CppRoute
   '/orders': typeof OrdersRoute
   '/performance': typeof PerformanceRoute
   '/products': typeof ProductsRoute
@@ -74,7 +66,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/cpp': typeof CppRoute
   '/orders': typeof OrdersRoute
   '/performance': typeof PerformanceRoute
   '/products': typeof ProductsRoute
@@ -84,26 +75,12 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/cpp'
-    | '/orders'
-    | '/performance'
-    | '/products'
-    | '/system'
-    | '/visualizer'
+    '/' | '/orders' | '/performance' | '/products' | '/system' | '/visualizer'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/cpp'
-    | '/orders'
-    | '/performance'
-    | '/products'
-    | '/system'
-    | '/visualizer'
+  to: '/' | '/orders' | '/performance' | '/products' | '/system' | '/visualizer'
   id:
     | '__root__'
     | '/'
-    | '/cpp'
     | '/orders'
     | '/performance'
     | '/products'
@@ -113,7 +90,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CppRoute: typeof CppRoute
   OrdersRoute: typeof OrdersRoute
   PerformanceRoute: typeof PerformanceRoute
   ProductsRoute: typeof ProductsRoute
@@ -128,13 +104,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cpp': {
-      id: '/cpp'
-      path: '/cpp'
-      fullPath: '/cpp'
-      preLoaderRoute: typeof CppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orders': {
@@ -177,7 +146,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CppRoute: CppRoute,
   OrdersRoute: OrdersRoute,
   PerformanceRoute: PerformanceRoute,
   ProductsRoute: ProductsRoute,

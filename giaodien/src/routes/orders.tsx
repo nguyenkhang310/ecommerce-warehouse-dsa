@@ -1,14 +1,22 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Info, ListPlus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ListPlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import {
+  Badge,
+  Button,
+  Input,
+  Label,
+  Progress,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Textarea,
+} from "@/components/ui/basic";
 import {
   Select,
   SelectContent,
@@ -25,14 +33,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { NextOrderCard } from "@/components/dashboard/NextOrderCard";
 import { PriorityBadge } from "@/components/common/badges";
@@ -46,20 +46,13 @@ import type { Priority } from "@/core/types";
 const PAGE_SIZE = 50;
 
 export const Route = createFileRoute("/orders")({
-  head: () => ({
-    meta: [
-      { title: "Hàng đợi đơn — Quản lý kho" },
-      {
-        name: "description",
-        content: "Xử lý đơn bằng hàng đợi ưu tiên.",
-      },
-      { property: "og:title", content: "Hàng đợi đơn — Quản lý kho" },
-      {
-        property: "og:description",
-        content: "Xếp đơn theo ưu tiên và thời gian.",
-      },
-    ],
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { action?: "create"; order?: string } => ({
+    ...(search.action === "create" ? { action: "create" as const } : {}),
+    ...(typeof search.order === "string" ? { order: search.order } : {}),
   }),
+  head: () => ({ meta: [{ title: "Hàng đợi đơn — Quản lý kho" }] }),
   component: OrdersPage,
 });
 
@@ -81,8 +74,8 @@ function CreateOrderDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const suggestions = useQuery({
-    queryKey: ["order-prefix", term],
-    queryFn: () => inventoryApi.searchProductsByPrefix(term, "auto"),
+    queryKey: ["order-prefix", term.trim()],
+    queryFn: () => inventoryApi.searchProductsByPrefix(term.trim(), "auto"),
     enabled: term.trim().length > 0,
   });
 
@@ -99,10 +92,15 @@ function CreateOrderDialog({
       onCreated(order.orderCode);
       void qc.invalidateQueries();
       onOpenChange(false);
+      setCode(randomOrderCode());
+      setPriority("high");
       setItems([]);
       setNote("");
+      setTerm("");
+      setErrors({});
     },
-    onError: () => toast.error("Không thêm được đơn vào hàng đợi."),
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Không thêm được đơn vào hàng đợi."),
   });
 
   const submit = () => {
@@ -118,7 +116,7 @@ function CreateOrderDialog({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Thêm đơn vào hàng đợi</DialogTitle>
-          <DialogDescription>Chèn vào hàng đợi ưu tiên với O(log n).</DialogDescription>
+          <DialogDescription className="sr-only">Nhập thông tin đơn hàng.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -148,15 +146,15 @@ function CreateOrderDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="oitem">Thêm sản phẩm (gợi ý bằng cây tiền tố)</Label>
+            <Label htmlFor="oitem">Sản phẩm</Label>
             <Input
               id="oitem"
               value={term}
               onChange={(e) => setTerm(e.target.value)}
-              placeholder="Gõ LAP, KEY, Bàn phím…"
+              placeholder="Tìm theo SKU hoặc tên sản phẩm…"
             />
             {term.trim() ? (
-              <div className="max-h-40 overflow-auto rounded-lg border border-border">
+              <div className="max-h-40 overflow-auto rounded-md border border-border">
                 {suggestions.isFetching ? (
                   <p className="px-3 py-2 text-xs text-muted-foreground">Đang tìm…</p>
                 ) : (suggestions.data?.entries.length ?? 0) === 0 ? (
@@ -191,18 +189,21 @@ function CreateOrderDialog({
               {items.map((it, idx) => (
                 <li
                   key={it.sku}
-                  className="grid grid-cols-[minmax(0,1fr)_90px_auto] items-center gap-2 rounded-lg border border-border p-2"
+                  className="grid grid-cols-[minmax(0,1fr)_90px_auto] items-center gap-2 rounded-md border border-border p-2"
                 >
                   <span className="truncate font-mono text-xs">{it.sku}</span>
                   <Input
                     aria-label={`Số lượng cho ${it.sku}`}
+                    type="number"
+                    min={1}
+                    step={1}
                     inputMode="numeric"
                     value={String(it.quantity)}
                     onChange={(e) =>
                       setItems((cur) =>
                         cur.map((x, i) =>
                           i === idx
-                            ? { ...x, quantity: Math.max(1, Number(e.target.value) || 1) }
+                            ? { ...x, quantity: Math.max(1, Math.floor(Number(e.target.value) || 1)) }
                             : x,
                         ),
                       )
@@ -245,6 +246,8 @@ function CreateOrderDialog({
 }
 
 function OrdersPage() {
+  const { action, order } = Route.useSearch();
+  const navigate = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
   const [filter, setFilter] = useState<Priority | "all">("all");
   const [highlight, setHighlight] = useState<string | null>(null);
@@ -266,11 +269,26 @@ function OrdersPage() {
   const pageCount = Math.max(1, Math.ceil(orders.length / PAGE_SIZE));
   const pageRows = orders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  useEffect(() => setPage((current) => Math.min(current, pageCount)), [pageCount]);
+
+  useEffect(() => {
+    if (action !== "create") return;
+    setCreateOpen(true);
+    void navigate({ to: "/orders", search: order ? { order } : {}, replace: true });
+  }, [action, navigate, order]);
+
+  useEffect(() => {
+    if (!order) return;
+    setFilter("all");
+    setHighlight(order);
+    const index = (queue.data ?? []).findIndex((item) => item.orderCode === order);
+    if (index >= 0) setPage(Math.floor(index / PAGE_SIZE) + 1);
+  }, [order, queue.data]);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title="Hàng đợi xử lý đơn"
-        description="Xếp đơn theo ưu tiên và thời gian."
         actions={
           <Button onClick={() => setCreateOpen(true)} className="gap-1.5">
             <ListPlus className="h-4 w-4" aria-hidden />
@@ -284,7 +302,7 @@ function OrdersPage() {
       ) : summary.isError ? (
         <ErrorState onRetry={() => summary.refetch()} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3">
           {(
             [
               ["urgent", "Gấp", summary.data.urgent],
@@ -295,7 +313,7 @@ function OrdersPage() {
             <article key={p} className="surface-card p-4">
               <div className="flex items-center justify-between gap-2">
                 <PriorityBadge priority={p} />
-                <span className="text-2xl font-bold tnum">{count}</span>
+                <span className="text-2xl font-semibold tracking-tight tnum">{count}</span>
               </div>
               <Progress value={total ? (count / total) * 100 : 0} className="mt-3 h-2" />
               <p className="mt-2 text-xs text-muted-foreground tnum">
@@ -306,12 +324,12 @@ function OrdersPage() {
         </div>
       )}
 
-      <NextOrderCard detailed />
+      <NextOrderCard />
 
       <Tabs defaultValue="list" className="space-y-4">
         <TabsList className="grid w-full grid-cols-2 sm:inline-flex sm:w-auto">
-          <TabsTrigger value="list">Danh sách vận hành</TabsTrigger>
-          <TabsTrigger value="tree">Cây hàng đợi</TabsTrigger>
+          <TabsTrigger value="list">Danh sách</TabsTrigger>
+          <TabsTrigger value="tree">Cây ưu tiên</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="space-y-3">
@@ -333,10 +351,6 @@ function OrdersPage() {
                 <SelectItem value="normal">Thường</SelectItem>
               </SelectContent>
             </Select>
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Info className="h-3.5 w-3.5" aria-hidden />
-              Bộ lọc chỉ thay đổi cách hiển thị, không thay đổi thứ tự xử lý của hàng đợi.
-            </p>
           </div>
 
           {queue.isPending ? (
@@ -347,7 +361,6 @@ function OrdersPage() {
             <EmptyState
               icon={ListPlus}
               title="Hàng đợi trống"
-              description="Chưa có đơn nào trong hàng đợi."
               action={<Button onClick={() => setCreateOpen(true)}>Thêm đơn mới</Button>}
             />
           ) : (
@@ -421,7 +434,7 @@ function OrdersPage() {
                         {o.items.length} / {o.totalQuantity}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">Đang chờ</Badge>
+                        <Badge>Đang chờ</Badge>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -437,7 +450,7 @@ function OrdersPage() {
                 pageCount={pageCount}
                 onPrev={() => setPage((current) => Math.max(1, current - 1))}
                 onNext={() => setPage((current) => Math.min(pageCount, current + 1))}
-                className="rounded-lg border border-border px-4 py-3"
+                className="rounded-md border border-border px-4 py-3"
               />
             </>
           )}
@@ -460,7 +473,15 @@ function OrdersPage() {
         </TabsContent>
       </Tabs>
 
-      <CreateOrderDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={setHighlight} />
+      <CreateOrderDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={(code) => {
+          setHighlight(code);
+          setFilter("all");
+          setPage(1);
+        }}
+      />
     </div>
   );
 }

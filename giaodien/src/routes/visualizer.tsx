@@ -3,10 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ArrowLeftRight, ChevronLeft, ChevronRight, HelpCircle, Pause, Play, RotateCcw, Search } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { Badge, Button, Input, Label } from "@/components/ui/basic";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -26,24 +23,22 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { ComplexityChip } from "@/components/common/badges";
 import { ErrorState, LoadingBlock } from "@/components/common/states";
 import { HeapTree } from "@/components/visualizer/HeapTree";
+import { useDefenseMode } from "@/context/defense-mode";
 import { inventoryApi, orderApi, visualizerApi } from "@/services/api";
 import { formatMs, formatNumber, randomOrderCode } from "@/lib/format";
 
+type VisualizerTab = "hash" | "heap" | "trie" | "recent";
+
 export const Route = createFileRoute("/visualizer")({
-  head: () => ({
-    meta: [
-      { title: "Trực quan DSA — Quản lý kho" },
-      {
-        name: "description",
-        content: "Trực quan cấu trúc dữ liệu C++.",
-      },
-      { property: "og:title", content: "Trực quan DSA — Quản lý kho" },
-      {
-        property: "og:description",
-        content: "Trực quan bốn cấu trúc dữ liệu C++.",
-      },
-    ],
-  }),
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tab?: VisualizerTab } => {
+    const tab = String(search.tab);
+    return tab === "hash" || tab === "heap" || tab === "trie" || tab === "recent"
+      ? { tab }
+      : {};
+  },
+  head: () => ({ meta: [{ title: "Trực quan DSA — Quản lý kho" }] }),
   component: VisualizerPage,
 });
 
@@ -67,17 +62,19 @@ function Legend() {
 
 function Pseudocode({ lines, active }: { lines: string[]; active: number }) {
   return (
-    <pre className="overflow-x-auto rounded-xl border border-border bg-muted/50 p-3 font-mono text-xs leading-6">
-      {lines.map((line, i) => (
-        <div
-          key={line}
-          className={
-            i === active ? "rounded bg-primary/15 px-1 font-semibold text-primary" : "px-1"
-          }
-        >
-          {line}
-        </div>
-      ))}
+    <pre className="overflow-x-auto rounded-md border border-border bg-muted/50 p-3 font-mono text-xs leading-6">
+      <code>
+        {lines.map((line, i) => (
+          <span
+            key={line}
+            className={`block ${
+              i === active ? "rounded bg-primary/15 px-1 font-semibold text-primary" : "px-1"
+            }`}
+          >
+            {line}
+          </span>
+        ))}
+      </code>
     </pre>
   );
 }
@@ -91,7 +88,9 @@ function DefenseExplain({
   why: string;
   complexity: string;
 }) {
+  const defense = useDefenseMode();
   const [open, setOpen] = useState(false);
+  if (!defense.enabled) return null;
   return (
     <>
       <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setOpen(true)}>
@@ -130,22 +129,23 @@ function DefenseExplain({
 
 function HashTab() {
   const [input, setInput] = useState("PRD-CMCX-R837344");
+  const [key, setKey] = useState(input);
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
 
   const buckets = useQuery({
-    queryKey: ["hash-buckets", input],
-    queryFn: () => visualizerApi.getHashSnapshot(24, input),
+    queryKey: ["hash-buckets", key],
+    queryFn: () => visualizerApi.getHashSnapshot(24, key),
   });
   const lookup = useQuery({
-    queryKey: ["hash-lookup", input],
-    queryFn: () => inventoryApi.lookupProductExact(input),
-    enabled: input.trim().length > 0,
+    queryKey: ["hash-lookup", key],
+    queryFn: () => inventoryApi.lookupProductExact(key),
+    enabled: key.length > 0,
   });
 
   const steps = [
-    `Chuẩn hóa khóa đầu vào "${input.toUpperCase()}"`,
+    `Chuẩn hóa khóa đầu vào "${key.toUpperCase()}"`,
     "Tính giá trị băm bằng djb2",
     "Lấy chỉ số ngăn = giá trị băm % dung lượng",
     "Duyệt chuỗi trong ngăn để so khớp khóa",
@@ -159,21 +159,35 @@ function HashTab() {
   }, [playing, speed, steps.length]);
 
   const trace = lookup.data?.trace;
+  const runLookup = () => {
+    const next = input.trim();
+    if (!next) return;
+    setStep(0);
+    if (next === key) {
+      void buckets.refetch();
+      void lookup.refetch();
+    } else {
+      setKey(next);
+    }
+  };
 
   return (
     <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_300px]">
       <div className="surface-card space-y-3 p-4">
-        <Label htmlFor="hash-input">Mã sản phẩm hoặc mã đơn</Label>
+        <Label htmlFor="hash-input">Mã sản phẩm (SKU)</Label>
         <Input
           id="hash-input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") runLookup();
+          }}
           className="font-mono"
         />
         <Button
           className="w-full gap-1.5"
-          onClick={() => lookup.refetch()}
-          disabled={lookup.isFetching}
+          onClick={runLookup}
+          disabled={lookup.isFetching || !input.trim()}
         >
           <Search className="h-4 w-4" aria-hidden />
           {lookup.isFetching ? "Đang tra cứu…" : "Tra cứu"}
@@ -253,7 +267,7 @@ function HashTab() {
         ) : buckets.isError ? (
           <ErrorState onRetry={() => buckets.refetch()} />
         ) : (
-          <div className="grid-lab max-h-[520px] overflow-auto rounded-xl border border-border p-3">
+          <div className="max-h-[520px] overflow-auto rounded-md border border-border bg-white p-3">
             <ul className="space-y-1.5">
               {buckets.data!.map((b) => (
                 <li
@@ -270,7 +284,7 @@ function HashTab() {
                       <span className="text-muted-foreground">trống</span>
                     ) : (
                       b.entries.map((e) => (
-                        <Badge key={e.sku} variant="outline" className="font-mono text-[10px]">
+                        <Badge key={e.sku} className="font-mono text-[10px]">
                           {e.sku}
                         </Badge>
                       ))
@@ -290,6 +304,8 @@ function HashTab() {
         <h3 className="text-sm font-semibold">Chi tiết thao tác</h3>
         {lookup.isPending ? (
           <LoadingBlock rows={4} />
+        ) : lookup.isError ? (
+          <ErrorState onRetry={() => lookup.refetch()} />
         ) : trace ? (
           <dl className="space-y-2 text-sm">
             {[
@@ -309,8 +325,8 @@ function HashTab() {
         ) : null}
         <div className="flex flex-wrap gap-2">
           <ComplexityChip>Trung bình O(1)</ComplexityChip>
-          <ComplexityChip tone="amber">Tệ nhất O(n)</ComplexityChip>
-          <ComplexityChip tone="cyan">Bộ nhớ O(n)</ComplexityChip>
+          <ComplexityChip>Tệ nhất O(n)</ComplexityChip>
+          <ComplexityChip>Bộ nhớ O(n)</ComplexityChip>
         </div>
         <p className="rounded-lg bg-muted p-2 text-xs text-muted-foreground">
           Bước {step + 1}/{steps.length}: {steps[step]}
@@ -338,6 +354,8 @@ function HeapTab() {
       setNote(`Đã thêm ${o.orderCode} vào hàng đợi. O(log n).`);
       void qc.invalidateQueries();
     },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Không thêm được đơn."),
   });
 
   const extract = useMutation({
@@ -346,6 +364,8 @@ function HeapTab() {
       if (o) setNote(`Đã lấy ${o.orderCode} khỏi hàng đợi. O(log n).`);
       void qc.invalidateQueries();
     },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Không lấy được đơn tiếp theo."),
   });
 
   return (
@@ -411,7 +431,7 @@ function HeapTab() {
           active={0}
         />
         <div className="flex flex-wrap gap-2">
-          <ComplexityChip tone="emerald">Xem O(1)</ComplexityChip>
+          <ComplexityChip>Xem O(1)</ComplexityChip>
           <ComplexityChip>Chèn O(log n)</ComplexityChip>
           <ComplexityChip>Lấy ra O(log n)</ComplexityChip>
         </div>
@@ -478,7 +498,7 @@ function TrieTab() {
         ) : snapshot.isError ? (
           <ErrorState onRetry={() => snapshot.refetch()} />
         ) : (
-          <div className="grid-lab mt-4 max-h-[420px] overflow-auto rounded-xl border border-border p-4">
+          <div className="mt-4 max-h-[420px] overflow-auto rounded-md border border-border bg-white p-4">
             {Array.from(byDepth.keys())
               .sort((a, b) => a - b)
               .map((depth) => (
@@ -536,7 +556,7 @@ function TrieTab() {
             <dd className="font-mono tnum">{snapshot.data?.matches ?? 0}</dd>
           </div>
         </dl>
-        <ComplexityChip tone="cyan">O(k + m)</ComplexityChip>
+        <ComplexityChip>O(k + m)</ComplexityChip>
         <DefenseExplain
           problem="Gợi ý theo tiền tố (TP2)."
           why="Đi theo từng ký tự, không quét toàn bộ."
@@ -573,6 +593,8 @@ function RecentTab() {
       );
       void qc.invalidateQueries();
     },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Không cập nhật được tồn kho."),
   });
 
   const items = snapshot.data?.items ?? [];
@@ -586,14 +608,14 @@ function RecentTab() {
           <ErrorState onRetry={() => snapshot.refetch()} />
         ) : (
           <>
-            <div className="grid-lab overflow-x-auto rounded-xl border border-border p-4">
+            <div className="overflow-x-auto rounded-md border border-border bg-white p-4">
               <div className="flex min-w-max items-center gap-2">
-                <Badge variant="outline" className="shrink-0">
+                <Badge className="shrink-0">
                   ĐẦU
                 </Badge>
                 {items.map((it, i) => (
                   <div key={it.sku} className="flex items-center gap-2">
-                    <div className="animate-slide-in-top w-[150px] rounded-xl border border-border bg-card p-2.5">
+                    <div className="animate-slide-in-top w-[150px] rounded-md border border-border bg-card p-2.5">
                       <p className="truncate font-mono text-[11px] text-muted-foreground">
                         {it.sku}
                       </p>
@@ -613,13 +635,13 @@ function RecentTab() {
                     ) : null}
                   </div>
                 ))}
-                <Badge variant="outline" className="shrink-0">
+                <Badge className="shrink-0">
                   CUỐI
                 </Badge>
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border border-border p-3">
+            <div className="mt-4 rounded-md border border-border p-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase">
                 Bảng băm: SKU → vị trí nút
               </p>
@@ -666,7 +688,7 @@ function RecentTab() {
           </p>
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <ComplexityChip tone="emerald">Mọi thao tác O(1)</ComplexityChip>
+          <ComplexityChip>Mọi thao tác O(1)</ComplexityChip>
         </div>
         <DefenseExplain
           problem="Xem sản phẩm vừa cập nhật (TP3)."
@@ -679,12 +701,17 @@ function RecentTab() {
 }
 
 function VisualizerPage() {
-  const [tab, setTab] = useState("hash");
+  const { tab: requestedTab } = Route.useSearch();
+  const [tab, setTab] = useState<VisualizerTab>(requestedTab ?? "hash");
   const [auto, setAuto] = useState(false);
 
   useEffect(() => {
+    if (requestedTab) setTab(requestedTab);
+  }, [requestedTab]);
+
+  useEffect(() => {
     if (!auto) return;
-    const order = ["hash", "heap", "trie", "recent"];
+    const order: VisualizerTab[] = ["hash", "heap", "trie", "recent"];
     const id = setInterval(() => {
       setTab((t) => order[(order.indexOf(t) + 1) % order.length]);
     }, 4500);
@@ -692,10 +719,9 @@ function VisualizerPage() {
   }, [auto]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title="Trực quan DSA"
-        description="Dữ liệu lấy trực tiếp từ bốn cấu trúc C++."
         actions={
           <Button
             variant={auto ? "default" : "outline"}
@@ -712,7 +738,11 @@ function VisualizerPage() {
         }
       />
 
-      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+      <Tabs
+        value={tab}
+        onValueChange={(value) => setTab(value as VisualizerTab)}
+        className="space-y-4"
+      >
         <TabsList className="grid w-full grid-cols-2 sm:inline-flex sm:w-auto sm:flex-nowrap">
           <TabsTrigger value="hash">Bảng băm</TabsTrigger>
           <TabsTrigger value="heap">Hàng đợi ưu tiên</TabsTrigger>

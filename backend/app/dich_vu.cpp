@@ -243,7 +243,7 @@ void WarehouseService::load() {
         next_sequence_ = std::max(next_sequence_, order.sequence_number);
     }
     last_load_at_ = now_utc();
-    add_log("info", "storage", "Đã nạp data_chinh vào các cấu trúc C++.");
+    add_log("info", "storage", "Đã tải dữ liệu hệ thống.");
 }
 
 void WarehouseService::index_product(const Product& product) {
@@ -696,7 +696,7 @@ nlohmann::json WarehouseService::run_benchmarks(const nlohmann::json& input) {
         benchmarks_.insert(benchmarks_.begin(), point);
     }
     if (benchmarks_.size() > 60) benchmarks_.resize(60);
-    add_log("info", "benchmark", "Đã đo " + operation + " bằng C++.");
+    add_log("info", "benchmark", "Đã hoàn tất phép đo " + operation + ".");
     return points;
 }
 

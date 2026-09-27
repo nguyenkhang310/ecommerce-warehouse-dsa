@@ -1,6 +1,5 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/basic";
 
-// Thanh chuyển trang dùng chung cho bảng sản phẩm và hàng đợi đơn.
 export function Pagination({
   from,
   to,

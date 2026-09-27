@@ -1,41 +1,37 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
-export interface DemoStep {
+interface DemoStep {
   title: string;
   route: string;
-  description: string;
+  target?: "recent" | "create";
 }
 
 export const DEMO_STEPS: DemoStep[] = [
   {
     title: "Tra cứu bảng băm",
     route: "/products",
-    description: "Nhập SKU để tra cứu O(1).",
   },
   {
     title: "Gợi ý bằng cây tiền tố",
     route: "/products",
-    description: "Gõ tiền tố để tìm O(k + m).",
   },
   {
     title: "Cập nhật kho và danh sách gần đây",
     route: "/visualizer",
-    description: "Cập nhật kho và xem thao tác chuyển lên đầu.",
+    target: "recent",
   },
   {
     title: "Thêm đơn vào hàng đợi ưu tiên",
     route: "/orders",
-    description: "Chèn đơn và vun lại cây trong O(log n).",
+    target: "create",
   },
   {
     title: "Xử lý đơn tiếp theo",
     route: "/orders",
-    description: "Lấy đơn ưu tiên nhất khỏi hàng đợi.",
   },
   {
     title: "Đánh giá hiệu năng",
     route: "/performance",
-    description: "So sánh giải pháp DSA với duyệt tuyến tính.",
   },
 ];
 

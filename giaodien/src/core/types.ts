@@ -152,15 +152,8 @@ export interface TrieSnapshot {
 }
 
 export interface HealthStatus {
-  coreApiUrl: string;
-  connected: boolean;
-  mode: "live";
-  storageType: string;
   lastLoadAt: string;
   productCount: number;
   orderCount: number;
-  heapSize: number;
-  trieTerms: number;
-  recentCapacity: number;
   latencyMs: number;
 }

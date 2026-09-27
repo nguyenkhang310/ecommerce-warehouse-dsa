@@ -1,6 +1,6 @@
 import type { Priority, StockStatus } from "@/core/types";
 
-export const nf = new Intl.NumberFormat("vi-VN");
+const nf = new Intl.NumberFormat("vi-VN");
 
 export function formatNumber(value: number): string {
   return nf.format(value);
