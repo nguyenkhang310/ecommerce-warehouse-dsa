@@ -92,7 +92,9 @@ std::vector<BenchmarkPoint> run_benchmark(
         if (size == 0 || size > products.size())
             throw std::invalid_argument("size phải nằm trong dữ liệu đã nạp");
 
-        std::vector<Product> original(products.begin(), products.begin() + size);
+        const auto end = products.begin()
+            + static_cast<std::vector<Product>::difference_type>(size);
+        std::vector<Product> original(products.begin(), end);
         std::vector<Product> sorted = original;
 
         const auto start = Clock::now();
