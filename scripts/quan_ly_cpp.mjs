@@ -57,7 +57,7 @@ async function compile(member, optimized = release) {
   mkdirSync(build, { recursive: true });
   const output = join(build, member ? "chay_thu_" + member + suffix : "may_chu" + suffix);
   const compileArgs = [
-    "-std=c++17", optimized ? "-O2" : "-O0", "-g", "-Wall", "-Wextra", "-Wpedantic",
+    "-std=c++17", optimized ? "-O2" : "-O0", optimized ? "-s" : "-g", "-Wall", "-Wextra", "-Wpedantic",
     "-finput-charset=UTF-8", "-fexec-charset=UTF-8", "-pthread",
     "-I", backend, "-isystem", deps,
   ];
@@ -102,7 +102,7 @@ async function runProject() {
   let backendProcess;
   if (!(await backendReady())) {
     console.log("Đang nạp 10.000 sản phẩm và 10.000 đơn hàng vào C++...");
-    backendProcess = spawn(executable, ["8080"], { cwd: root, stdio: "inherit" });
+    backendProcess = spawn(executable, ["8080"], { cwd: root, stdio: "inherit", shell: process.platform === "win32" });
     let ready = false;
     for (let attempt = 0; attempt < 240 && !ready; attempt++) {
       ready = await backendReady();
