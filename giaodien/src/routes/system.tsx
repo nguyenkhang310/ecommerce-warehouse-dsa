@@ -55,6 +55,10 @@ function DataTab() {
             {reload.isPending ? "Đang khôi phục…" : "Khôi phục dữ liệu"}
           </Button>
         </div>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Thay đổi chỉ lưu trong phiên chạy. Khôi phục dữ liệu hoặc khởi động lại backend sẽ
+          xóa thay đổi và nạp lại CSV gốc.
+        </p>
 
         {health.isPending ? (
           <LoadingBlock rows={2} className="mt-4" />

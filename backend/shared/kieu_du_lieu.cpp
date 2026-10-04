@@ -13,26 +13,19 @@ enum class Priority { normal = 1, high = 2, urgent = 3 };
 enum class OrderStatus { queued, processing, completed, cancelled, returned };
 
 struct Product {
-    std::string id;
-    std::string sku;
-    std::string name;
-    std::string category;
-    int stock = 0;
-    int reorder_level = 0;
-    std::string created_at;
-    std::string updated_at;
+    std::string id, sku;
+    std::string name, category;
+    int stock = 0, reorder_level = 0;
+    std::string created_at, updated_at;
 };
 
 struct OrderItem {
-    std::string product_id;
-    std::string sku;
-    std::string name;
+    std::string product_id, sku, name;
     int quantity = 0;
 };
 
 struct Order {
-    std::string id;
-    std::string order_code;
+    std::string id, order_code;
     Priority priority = Priority::normal;
     // Tăng dần khi tạo đơn, giữ nguyên khi nạp lại; cùng ưu tiên thì số nhỏ hơn đi trước.
     std::uint64_t sequence_number = 0;
@@ -43,22 +36,16 @@ struct Order {
 };
 
 struct RecentUpdate {
-    std::string product_id;
-    std::string sku;
-    std::string name;
-    int delta = 0;
-    int stock_after = 0;
+    std::string product_id, sku, name;
+    int delta = 0, stock_after = 0;
     std::string updated_at;
 };
 
 struct StockMovement {
     std::string id;
-    std::string product_id;
-    std::string sku;
-    int delta = 0;
-    int stock_after = 0;
-    std::string reason;
-    std::string note;
+    std::string product_id, sku;
+    int delta = 0, stock_after = 0;
+    std::string reason, note;
     std::string created_at;
 };
 
@@ -70,11 +57,9 @@ struct StorageData {
 
 struct BenchmarkPoint {
     std::string operation;
-    std::size_t dataset_size = 0;
-    std::size_t iterations = 0;
+    std::size_t dataset_size = 0, iterations = 0;
     double preparation_ms = 0;
-    double dsa_mean_ms = 0;
-    double baseline_mean_ms = 0;
+    double dsa_mean_ms = 0, baseline_mean_ms = 0;
     std::string measured_at;
 };
 

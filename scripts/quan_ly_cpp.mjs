@@ -56,8 +56,11 @@ async function compile(member, optimized = release) {
   await setup();
   mkdirSync(build, { recursive: true });
   const output = join(build, member ? "chay_thu_" + member + suffix : "may_chu" + suffix);
+  const symbolArgs = optimized
+    ? (process.platform === "darwin" ? [] : ["-s"])
+    : ["-g"];
   const compileArgs = [
-    "-std=c++17", optimized ? "-O2" : "-O0", optimized ? "-s" : "-g", "-Wall", "-Wextra", "-Wpedantic",
+    "-std=c++17", optimized ? "-O2" : "-O0", ...symbolArgs, "-Wall", "-Wextra", "-Wpedantic",
     "-finput-charset=UTF-8", "-fexec-charset=UTF-8", "-pthread",
     "-I", backend, "-isystem", deps,
   ];

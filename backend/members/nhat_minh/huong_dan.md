@@ -64,4 +64,4 @@ g++ -std=c++17 -Wall -Wextra -I backend -I backend/thu_vien backend/members/nhat
 npm run backend:build
 npm run backend:start
 ```
-Mở giao diện web ở trang demo C++ (`/cpp`), chọn **Hồ Nhật Minh — Heap — MC2 + TP1**.
+Mở màn hình **Trực quan DSA → Heap** hoặc gửi JSON đến API `/api/demo/nhat_minh`.

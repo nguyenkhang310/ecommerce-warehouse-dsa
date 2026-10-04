@@ -13,6 +13,7 @@
 #include <chrono>
 #include <cctype>
 #include <cmath>
+#include <limits>
 #include <ctime>
 #include <iomanip>
 #include <optional>
@@ -40,6 +41,7 @@ private:
     std::vector<nlohmann::json> logs_;
     std::vector<nlohmann::json> benchmarks_;
     std::uint64_t next_sequence_ = 0;
+    std::uint64_t next_log_id_ = 0;
     std::size_t trie_terms_ = 0;
     std::size_t trie_max_depth_ = 0;
     std::string last_load_at_;
@@ -74,9 +76,51 @@ using Json = nlohmann::json;
 using Clock = std::chrono::steady_clock;
 volatile std::size_t benchmark_sink = 0;
 
-std::string lower(std::string v) {
-    for (char& c : v) c = static_cast<char>(std::tolower((unsigned char)c));
-    return v;
+// Không để JSON tự cắt phần thập phân hoặc thu hẹp số vượt phạm vi int.
+inline int integer_in_range(const nlohmann::json& value, const std::string& field,
+                            int minimum = 0,
+                            int maximum = std::numeric_limits<int>::max()) {
+    if (!value.is_number_integer()
+        || (value.is_number_unsigned()
+            && value.get<std::uint64_t>() > static_cast<std::uint64_t>(maximum))) {
+        throw std::invalid_argument(field + " phải là số nguyên trong phạm vi cho phép");
+    }
+    const auto number = value.get<std::int64_t>();
+    if (number < minimum || number > maximum) {
+        throw std::invalid_argument(field + " vượt phạm vi cho phép");
+    }
+    return static_cast<int>(number);
+}
+
+inline int integer_field(const nlohmann::json& input, const std::string& field,
+                         int minimum = 0,
+                         int maximum = std::numeric_limits<int>::max()) {
+    if (!input.contains(field)) throw std::invalid_argument("Thiếu trường " + field);
+    return integer_in_range(input.at(field), field, minimum, maximum);
+}
+
+inline std::string trim(const std::string& value) {
+    const auto first = value.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos) return "";
+    return value.substr(first, value.find_last_not_of(" \t\r\n") - first + 1);
+}
+
+// Hoa/thường ASCII và tiếng Việt dựng sẵn (NFC), không bỏ dấu.
+std::string lower(std::string value) {
+    const std::string capitals = "ÀÁẢÃẠĂẰẮẲẴẶÂẦẤẨẪẬÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐ";
+    const std::string small = "àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ";
+    for (std::size_t i = 0; i < value.size();) {
+        std::size_t end = i + 1;
+        while (end < value.size() && (static_cast<unsigned char>(value[end]) & 0xc0) == 0x80) ++end;
+        if (end == i + 1) value[i] = static_cast<char>(std::tolower(static_cast<unsigned char>(value[i])));
+        else {
+            const auto position = capitals.find(value.substr(i, end - i));
+            // Các cặp chữ Việt hoa/thường có cùng số byte UTF-8.
+            if (position != std::string::npos) value.replace(i, end - i, small.substr(position, end - i));
+        }
+        i = end;
+    }
+    return value;
 }
 
 std::string upper(std::string v) {
@@ -88,7 +132,7 @@ std::vector<std::string> words(const std::string& value) {
     std::vector<std::string> result;
     std::string word;
     for (const unsigned char character : lower(value)) {
-        if (std::isalnum(character)) word.push_back(static_cast<char>(character));
+        if (character >= 128 || std::isalnum(character)) word.push_back(static_cast<char>(character));
         else if (!word.empty()) {
             result.push_back(word);
             word.clear();
@@ -174,7 +218,7 @@ Json recent_json(const RecentUpdate& update) {
 Json order_json(const Order& order,
                 const kieu_trang::HashTable<Product>& products) {
     Json items = Json::array();
-    int total = 0;
+    std::int64_t total = 0;
     for (const OrderItem& item : order.items) {
         const Product* product = products.find(item.sku);
         items.push_back({
@@ -254,13 +298,14 @@ void WarehouseService::index_product(const Product& product) {
         trie_max_depth_ = std::max(trie_max_depth_, term.size());
     };
     add_term(sku_trie_, lower(product.sku));
+    add_term(name_trie_, lower(product.name));
     for (const std::string& word : words(product.name)) add_term(name_trie_, word);
 }
 
 void WarehouseService::add_log(const std::string& level, const std::string& source,
                                const std::string& message) {
     logs_.insert(logs_.begin(), Json{
-        {"id", "log-" + std::to_string(std::time(nullptr)) + "-" + std::to_string(logs_.size())},
+        {"id", "log-" + std::to_string(++next_log_id_)},
         {"at", now_utc()}, {"level", level}, {"source", source}, {"message", message}
     });
     if (logs_.size() > 60) logs_.resize(60);
@@ -276,7 +321,7 @@ nlohmann::json WarehouseService::dashboard() const {
         if (stock_status(product) != "in_stock") ++low_stock;
         if (parse_utc(product.created_at) >= month_ago) ++added_this_month;
     }
-    int inbound_today = 0;
+    std::int64_t inbound_today = 0;
     const std::string today = now_utc().substr(0, 10);
     for (const StockMovement& movement : movements_) {
         if (movement.created_at.substr(0, 10) == today
@@ -314,7 +359,7 @@ nlohmann::json WarehouseService::products(const nlohmann::json& input) const {
 }
 
 nlohmann::json WarehouseService::lookup_product(const std::string& raw_sku) {
-    const std::string sku = upper(raw_sku);
+    const std::string sku = upper(trim(raw_sku));
     const auto start = Clock::now();
     const Product* product = products_.find(sku);
     const double duration = elapsed_ms(start);
@@ -329,7 +374,7 @@ nlohmann::json WarehouseService::lookup_product(const std::string& raw_sku) {
     return {
         {"product", product ? product_json(*product) : Json(nullptr)},
         {"trace", {
-            {"input", raw_sku}, {"hashValue", products_.hash_value(sku)},
+            {"input", raw_sku}, {"hashValue", std::to_string(products_.hash_value(sku))},
             {"bucketIndex", bucket}, {"comparisons", comparisons},
             {"elapsedMs", duration}, {"complexity", "Trung bình O(1)"},
             {"found", product != nullptr}
@@ -339,7 +384,7 @@ nlohmann::json WarehouseService::lookup_product(const std::string& raw_sku) {
 
 nlohmann::json WarehouseService::search_prefix(const std::string& raw_prefix,
                                                 const std::string& field) const {
-    const std::string prefix = lower(raw_prefix);
+    const std::string prefix = lower(trim(raw_prefix));
     const auto start = Clock::now();
     std::vector<std::string> matches;
     if (!prefix.empty()) {
@@ -365,15 +410,18 @@ nlohmann::json WarehouseService::search_prefix(const std::string& raw_prefix,
 }
 
 nlohmann::json WarehouseService::create_product(const nlohmann::json& input) {
-    const std::string sku = upper(input.value("sku", ""));
-    const std::string name = input.value("name", "");
-    const std::string category = input.value("category", "");
-    const int stock = input.value("stock", -1);
-    const int reorder = input.value("reorderLevel", -1);
+    const std::string sku = upper(trim(input.value("sku", "")));
+    const std::string name = trim(input.value("name", ""));
+    const std::string category = trim(input.value("category", ""));
+    const int stock = integer_field(input, "stock");
+    const int reorder = integer_field(input, "reorderLevel");
     if (sku.empty() || name.empty() || category.empty() || stock < 0 || reorder < 0) {
         throw std::invalid_argument("Thông tin sản phẩm chưa hợp lệ");
     }
     if (products_.find(sku)) throw std::invalid_argument("SKU đã tồn tại");
+    if (sku.size() > 128 || name.size() > 512 || category.size() > 128) {
+        throw std::invalid_argument("SKU, tên hoặc danh mục quá dài");
+    }
 
     const std::string created_at = now_utc();
     Product product{"PRD-NEW-" + std::to_string(data_.products.size() + 1),
@@ -385,14 +433,22 @@ nlohmann::json WarehouseService::create_product(const nlohmann::json& input) {
 }
 
 nlohmann::json WarehouseService::update_stock(const nlohmann::json& input) {
-    const std::string sku = upper(input.value("sku", ""));
-    const int delta = input.value("delta", 0);
+    const std::string sku = upper(trim(input.value("sku", "")));
+    const int delta = integer_field(input, "delta", std::numeric_limits<int>::min());
     const std::string reason = input.value("reason", "adjustment");
+    const std::string note = input.value("note", "");
     Product* product = products_.find(sku);
     if (!product) throw std::invalid_argument("Không tìm thấy sản phẩm " + sku);
-    if (product->stock + delta < 0) throw std::invalid_argument("Tồn kho không được âm");
+    const std::int64_t stock_after = static_cast<std::int64_t>(product->stock) + delta;
+    if (stock_after < 0 || stock_after > std::numeric_limits<int>::max()) {
+        throw std::invalid_argument("Tồn kho phải từ 0 đến 2147483647");
+    }
     if (reason != "inbound" && reason != "outbound" && reason != "adjustment") {
         throw std::invalid_argument("Lý do cập nhật không hợp lệ");
+    }
+    if (delta == 0 || (reason == "inbound" && delta < 0)
+        || (reason == "outbound" && delta > 0)) {
+        throw std::invalid_argument("Nhập kho phải tăng, xuất kho phải giảm; số lượng thay đổi khác 0");
     }
 
     const auto before = recent_.snapshot();
@@ -404,7 +460,7 @@ nlohmann::json WarehouseService::update_stock(const nlohmann::json& input) {
         evicted = before.back().sku;
     }
 
-    product->stock += delta;
+    product->stock = static_cast<int>(stock_after);
     product->updated_at = now_utc();
     for (Product& stored : data_.products) {
         if (stored.sku == sku) {
@@ -414,7 +470,7 @@ nlohmann::json WarehouseService::update_stock(const nlohmann::json& input) {
     }
     StockMovement movement{
         "MOV-" + std::to_string(movements_.size() + 1), product->id, sku,
-        delta, product->stock, reason, input.value("note", ""), product->updated_at
+        delta, product->stock, reason, note, product->updated_at
     };
     movements_.insert(movements_.begin(), movement);
 
@@ -459,16 +515,21 @@ nlohmann::json WarehouseService::queue_orders(const nlohmann::json& input) const
 }
 
 nlohmann::json WarehouseService::lookup_order(const std::string& raw_code) const {
-    const std::string code = upper(raw_code);
+    const std::string code = upper(trim(raw_code));
     const auto start = Clock::now();
     const Order* order = orders_.find(code);
     const double duration = elapsed_ms(start);
     const std::size_t bucket = orders_.bucket_index(code);
+    std::size_t comparisons = 0;
+    for (const Order& entry : orders_.bucket_values(bucket)) {
+        ++comparisons;
+        if (entry.order_code == code) break;
+    }
     return {
         {"order", order ? order_json(*order, products_) : Json(nullptr)},
         {"trace", {
-            {"input", raw_code}, {"hashValue", orders_.hash_value(code)},
-            {"bucketIndex", bucket}, {"comparisons", order ? 1 : 0},
+            {"input", raw_code}, {"hashValue", std::to_string(orders_.hash_value(code))},
+            {"bucketIndex", bucket}, {"comparisons", comparisons},
             {"elapsedMs", duration}, {"complexity", "Trung bình O(1)"},
             {"found", order != nullptr}
         }}
@@ -476,23 +537,24 @@ nlohmann::json WarehouseService::lookup_order(const std::string& raw_code) const
 }
 
 nlohmann::json WarehouseService::enqueue(const nlohmann::json& input) {
-    const std::string code = upper(input.value("orderCode", ""));
+    const std::string code = upper(trim(input.value("orderCode", "")));
     if (code.empty() || orders_.find(code)) throw std::invalid_argument("Mã đơn không hợp lệ hoặc đã tồn tại");
     if (!input.contains("items") || !input["items"].is_array() || input["items"].empty()) {
         throw std::invalid_argument("Đơn hàng phải có sản phẩm");
     }
     Order order{
         "ORD-NEW-" + std::to_string(data_.orders.size() + 1), code,
-        parse_priority(input.value("priority", "")), ++next_sequence_, {},
+        parse_priority(input.value("priority", "")), next_sequence_ + 1, {},
         OrderStatus::queued, input.value("note", ""), now_utc()
     };
     for (const auto& value : input["items"]) {
-        const std::string sku = upper(value.value("sku", ""));
-        const int quantity = value.value("quantity", 0);
+        const std::string sku = upper(trim(value.value("sku", "")));
+        const int quantity = integer_field(value, "quantity", 1);
         const Product* product = products_.find(sku);
         if (!product || quantity <= 0) throw std::invalid_argument("Sản phẩm hoặc số lượng không hợp lệ");
         order.items.push_back({product->id, sku, product->name, quantity});
     }
+    ++next_sequence_;
     data_.orders.push_back(order);
     orders_.upsert(code, order);
     queue_.push(order);
@@ -538,7 +600,7 @@ nlohmann::json WarehouseService::hash_snapshot(std::size_t limit, const std::str
         : std::optional<std::size_t>(products_.bucket_index(upper(key)));
     auto append_bucket = [&](std::size_t index) {
         const auto values = products_.bucket_values(index);
-        if (values.empty()) return;
+        if (values.empty() && (!selected || index != *selected)) return;
         Json entries = Json::array();
         for (const Product& product : values) {
             entries.push_back({{"sku", product.sku}, {"name", product.name}});
@@ -555,22 +617,23 @@ nlohmann::json WarehouseService::hash_snapshot(std::size_t limit, const std::str
 
 nlohmann::json WarehouseService::trie_snapshot(const std::string& raw_prefix,
                                                 const std::string& field) const {
-    const std::string prefix = lower(raw_prefix);
+    const std::string prefix = lower(trim(raw_prefix));
     const Json search = search_prefix(prefix, field);
     Json suggestions = Json::array();
     for (const auto& product : search["entries"]) {
         suggestions.push_back({{"sku", product["sku"]}, {"name", product["name"]}});
     }
     Json nodes = Json::array();
-    if (!suggestions.empty()) {
+    {
         std::string parent = "root";
         std::string path;
-        for (std::size_t index = 0; index < prefix.size(); ++index) {
-            path += prefix[index];
+        const auto trace = (field == "name" ? name_trie_ : sku_trie_).prefix_path(prefix);
+        for (std::size_t index = 0; index < trace.size(); ++index) {
+            path += trace[index].first;
             nodes.push_back({
                 {"id", path}, {"parentId", parent},
-                {"char", std::string(1, prefix[index])}, {"depth", index + 1},
-                {"isWord", false}, {"onPath", true}
+                {"char", trace[index].first}, {"depth", index + 1},
+                {"isWord", trace[index].second}, {"onPath", true}
             });
             parent = path;
         }
@@ -594,19 +657,25 @@ nlohmann::json WarehouseService::recent_snapshot() const {
 
 nlohmann::json WarehouseService::run_benchmarks(const nlohmann::json& input) {
     const std::string operation = input.value("operation", "");
-    const int iterations = input.value("iterations", 0);
+    const int iterations = integer_field(input, "iterations", 1, 1000);
     const bool warmup = input.value("warmup", true);
-    if (iterations <= 0 || iterations > 1000) {
-        throw std::invalid_argument("Số lần lặp phải từ 1 đến 1000");
-    }
-    if (!input.contains("sizes") || !input["sizes"].is_array()) {
+    if (!input.contains("sizes") || !input["sizes"].is_array() || input["sizes"].empty()
+        || input["sizes"].size() > 10) {
         throw std::invalid_argument("Thiếu danh sách kích thước");
+    }
+    if (operation != "hash_lookup" && operation != "trie_prefix"
+        && operation != "heap_extract" && operation != "initial_load") {
+        throw std::invalid_argument("Phép đo không hợp lệ");
+    }
+    const std::size_t available = operation == "heap_extract" ? data_.orders.size() : data_.products.size();
+    // Kiểm tra toàn bộ trước khi chạy để yêu cầu lỗi không ghi một phần lịch sử.
+    for (const auto& value : input["sizes"]) {
+        const auto size = static_cast<std::size_t>(integer_in_range(value, "size", 1));
+        if (size > available) throw std::invalid_argument("Kích thước vượt dữ liệu đã nạp");
     }
     Json points = Json::array();
     for (const auto& size_value : input["sizes"]) {
         const std::size_t size = size_value.get<std::size_t>();
-        const std::size_t available = operation == "heap_extract" ? data_.orders.size() : data_.products.size();
-        if (size == 0 || size > available) throw std::invalid_argument("Kích thước vượt dữ liệu đã nạp");
         double dsa_ms = 0;
         double baseline_ms = 0;
 
@@ -630,8 +699,12 @@ nlohmann::json WarehouseService::run_benchmarks(const nlohmann::json& input) {
             baseline_ms = elapsed_ms(start) / iterations;
         } else if (operation == "trie_prefix") {
             kim_ngan::Trie trie;
-            for (std::size_t i = 0; i < size; ++i) trie.insert(lower(data_.products[i].sku), data_.products[i].sku);
-            const std::string prefix = lower(data_.products[size / 2].sku.substr(0, 8));
+            std::vector<std::string> normalized;
+            for (std::size_t i = 0; i < size; ++i) {
+                normalized.push_back(lower(data_.products[i].sku));
+                trie.insert(normalized.back(), data_.products[i].sku);
+            }
+            const std::string prefix = normalized[size / 2].substr(0, 8);
             if (warmup) benchmark_sink += trie.search_prefix(prefix).size();
             auto start = Clock::now();
             for (int i = 0; i < iterations; ++i) benchmark_sink += trie.search_prefix(prefix).size();
@@ -639,7 +712,7 @@ nlohmann::json WarehouseService::run_benchmarks(const nlohmann::json& input) {
             start = Clock::now();
             for (int i = 0; i < iterations; ++i) {
                 for (std::size_t j = 0; j < size; ++j) {
-                    benchmark_sink += lower(data_.products[j].sku).rfind(prefix, 0) == 0;
+                    benchmark_sink += normalized[j].rfind(prefix, 0) == 0;
                 }
             }
             baseline_ms = elapsed_ms(start) / iterations;
@@ -693,8 +766,8 @@ nlohmann::json WarehouseService::run_benchmarks(const nlohmann::json& input) {
             {"measuredAt", now_utc()}, {"mode", "live"}
         };
         points.push_back(point);
-        benchmarks_.insert(benchmarks_.begin(), point);
     }
+    for (const auto& point : points) benchmarks_.insert(benchmarks_.begin(), point);
     if (benchmarks_.size() > 60) benchmarks_.resize(60);
     add_log("info", "benchmark", "Đã hoàn tất phép đo " + operation + ".");
     return points;
@@ -707,7 +780,7 @@ nlohmann::json WarehouseService::run(const std::string& action, const nlohmann::
     if (action == "product_lookup") return lookup_product(input.value("sku", ""));
     if (action == "product_search") return search_prefix(input.value("prefix", ""), input.value("field", "auto"));
     if (action == "product_detail") {
-        const Product* product = products_.find(upper(input.value("sku", "")));
+        const Product* product = products_.find(upper(trim(input.value("sku", ""))));
         if (!product) throw std::invalid_argument("Không tìm thấy sản phẩm");
         Json movements = Json::array();
         for (const StockMovement& movement : movements_) {
@@ -719,7 +792,7 @@ nlohmann::json WarehouseService::run(const std::string& action, const nlohmann::
     if (action == "stock_update") return update_stock(input);
     if (action == "recent") {
         Json items = recent_snapshot()["items"];
-        const std::size_t limit = input.value("limit", 6U);
+        const std::size_t limit = integer_in_range(input.value("limit", Json(6)), "limit");
         while (items.size() > limit) items.erase(items.end() - 1);
         return items;
     }
@@ -728,7 +801,7 @@ nlohmann::json WarehouseService::run(const std::string& action, const nlohmann::
     if (action == "order_lookup") return lookup_order(input.value("orderCode", ""));
     if (action == "next_orders") {
         Json result = Json::array();
-        for (const Order& order : ordered_queue(queue_, input.value("limit", 5U))) {
+        for (const Order& order : ordered_queue(queue_, integer_in_range(input.value("limit", Json(5)), "limit"))) {
             result.push_back(order_json(order, products_));
         }
         return result;
@@ -737,7 +810,7 @@ nlohmann::json WarehouseService::run(const std::string& action, const nlohmann::
     if (action == "order_extract") return extract_next();
     if (action == "heap") return heap_snapshot();
     if (action == "logs") return logs_;
-    if (action == "hash") return hash_snapshot(input.value("limit", 24U), input.value("key", ""));
+    if (action == "hash") return hash_snapshot(integer_in_range(input.value("limit", Json(24)), "limit"), input.value("key", ""));
     if (action == "trie") return trie_snapshot(input.value("prefix", ""), input.value("field", "sku"));
     if (action == "recent_snapshot") return recent_snapshot();
     if (action == "benchmark_run") return run_benchmarks(input);

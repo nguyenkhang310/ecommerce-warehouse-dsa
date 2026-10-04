@@ -19,14 +19,26 @@ Heap, Trie và danh sách liên kết đôi + bảng băm nằm trong bộ nhớ
 | --- | --- | --- |
 | Tra cứu sản phẩm theo SKU (MC1) | Bảng băm tự cài đặt | Trung bình O(1) |
 | Xử lý đơn theo ưu tiên (MC2 + TP1) | Hàng đợi ưu tiên (max-heap), cùng mức thì số thứ tự nhỏ đi trước | Xem O(1), chèn/lấy O(log n) |
-| Gợi ý theo tiền tố (TP2) | Cây tiền tố | O(k + m) |
+| Gợi ý theo tiền tố (TP2) | Cây tiền tố | O(k + v + r + m log m), xem giải thích dưới |
 | Theo dõi cập nhật tồn kho gần đây (TP3) | Danh sách liên kết đôi + bảng băm | O(1) |
 | Sắp xếp phục vụ benchmark | Merge Sort tự cài đặt, đối chứng `std::stable_sort` | O(n log n) |
 
-Giao diện gồm 7 màn hình: Tổng quan, Sản phẩm, Hàng đợi đơn, Trực quan DSA,
-Hiệu năng, Dữ liệu & hệ thống, và Demo C++ (`/cpp` chạy `chay_thu.cpp` của từng
-thành viên). Mọi số liệu trên giao diện đều do backend C++ trả về, không có dữ
-liệu dựng sẵn ở frontend.
+Giao diện gồm 6 màn hình: Tổng quan, Sản phẩm, Hàng đợi đơn, Trực quan DSA,
+Hiệu năng, Dữ liệu & hệ thống. Demo riêng từng thành viên chạy bằng `npm run demo`
+hoặc API `/api/demo/:id`; hiện không có trang `/cpp`.
+Số liệu nghiệp vụ và hiệu năng do backend C++ trả về.
+
+**Yêu cầu tự cài đặt ít nhất 2 cấu trúc:** Heap tự viết `sift_up/sift_down`,
+Trie tự viết nút, chèn, xóa và duyệt tiền tố, đúng hai cấu trúc chọn trong Plan.
+Ngoài ra còn có Hash Table tự viết hàm băm, xử lý va chạm và rehash, cùng danh sách
+liên kết đôi tự viết con trỏ `prev/next`. `vector` dùng làm vùng chứa;
+`unordered_map/set` hỗ trợ các nhánh Trie và chỉ mục RecentList, không thay thuật toán Heap/Trie.
+
+Với Trie hiện tại: k là số byte tiền tố, v là số nút cây con được duyệt,
+r là tổng lượt SKU tại các nút kết thúc, m là số SKU duy nhất;
+`m log m` đến từ sắp xếp kết quả. Đây là chi phí trung bình của các thao tác băm hỗ trợ,
+chưa tính độ dài chuỗi SKU. Các độ phức tạp trong bảng mô tả cấu trúc lõi,
+không phải toàn bộ API (còn sao chép, duyệt dữ liệu và xuất JSON).
 
 ```mermaid
 flowchart TB
@@ -77,6 +89,11 @@ Quy ước quan trọng:
 * Heap so sánh `urgent > high > normal`; cùng mức ưu tiên thì `sequence` nhỏ hơn đi trước.
 * Server nạp `data_chinh` vào 4 cấu trúc ngay khi khởi động. Thêm sản phẩm, cập nhật
   tồn kho, xử lý đơn dùng chung một trạng thái; nút **Nạp lại dữ liệu** đọc lại CSV gốc.
+  Thay đổi chỉ tồn tại trong phiên chạy, chưa có chức năng lưu thay đổi từ web xuống CSV.
+* Theo MC2 trong Plan, xử lý đơn là lấy khỏi Heap và đánh dấu đã xử lý trong demo;
+  không tự động xuất kho. Nhập/xuất tồn kho là thao tác riêng tại màn hình Sản phẩm.
+* Tìm tên theo tiền tố cả tên hoặc từng từ; hỗ trợ hoa/thường ASCII và chữ Việt dựng sẵn
+  (NFC). Không bỏ dấu hoặc tự chuẩn hóa chữ Unicode dạng dấu tách (NFD).
 * Benchmark đo trong C++ bằng `steady_clock`, có chạy khởi động (warmup), lặp nhiều lần
   lấy trung bình, cộng dồn checksum để trình biên dịch không loại bỏ phép đo.
   HTTP/JSON/render không tính vào thời gian DSA.
@@ -128,7 +145,7 @@ npm run frontend:dev
 
 | Lệnh | Tác dụng |
 | --- | --- |
-| `npm run dev` | Build (nếu thiếu) + chạy backend và frontend cùng lúc |
+| `npm run dev` | Build backend + chạy backend và frontend cùng lúc |
 | `npm run demo -- <id> [input.json] [--release]` | Chạy demo `chay_thu.cpp` của một thành viên |
 | `npm run data:setup` | Tải nguồn, kiểm tra SHA256, tạo lại dữ liệu |
 | `npm run check:bridge` | Kiểm tra cầu HTTP/JSON backend ↔ frontend |
@@ -143,9 +160,9 @@ backend/
   shared/          Kiểu dữ liệu và phản hồi demo dùng chung
   data/data_chinh/ Dữ liệu chính: 10.000 sản phẩm + 10.000 đơn (liên kết đủ qua SKU)
 giaodien/src/
-  routes/          7 màn hình (index, products, orders, visualizer, performance, system, cpp)
+  routes/          6 màn hình (index, products, orders, visualizer, performance, system)
   components/      UI dùng chung (badges, states, Pagination, HeapTree, …)
-  services/        api.ts (nghiệp vụ) · giao_tiep_cpp.ts (demo C++)
+  services/        api.ts (gọi dịch vụ C++)
   core/ · lib/     Kiểu dữ liệu, format, tiện ích
 scripts/           Build C++, làm sạch dữ liệu, kiểm tra kết nối
 ```
@@ -162,6 +179,17 @@ Schema, nguồn và quy tắc chuẩn hóa xem [hướng dẫn dữ liệu](back
 
 ## Kiểm thử
 
+Chạy cả 5 bộ test thành viên và test tích hợp dịch vụ thật (cần thư viện JSON từ setup):
+
+```sh
+npm run backend:setup
+python3 backend/kiem_thu/run_test.py
+# Tùy chọn trên macOS/Linux có hỗ trợ AddressSanitizer/UndefinedBehaviorSanitizer:
+python3 backend/kiem_thu/run_test.py --sanitize
+```
+
+Trên Windows dùng `python` nếu máy không có lệnh `python3`.
+
 * Mỗi thành viên có test `main()` riêng trong `kiem_thu/`, biên dịch và chạy độc lập.
   Ví dụ test của Khang:
 
@@ -173,6 +201,7 @@ g++ -std=c++17 -Wall -Wextra -Wpedantic -I backend backend/members/nguyen_khang/
 * Cổng kiểm tra chất lượng trước khi đẩy code:
 
 ```powershell
+npm run backend:build
 npm run check:bridge
 npm run frontend:build
 npm --prefix giaodien run typecheck

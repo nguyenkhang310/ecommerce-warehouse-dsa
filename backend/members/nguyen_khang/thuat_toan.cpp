@@ -17,12 +17,17 @@ namespace {
 using Clock = std::chrono::steady_clock;
 volatile std::size_t benchmark_sink = 0;
 
+double elapsed_ms(Clock::time_point start) {
+    return std::chrono::duration<double, std::milli>(Clock::now() - start).count();
+}
+
 // Trộn hai đoạn đã sắp xếp: [left, middle) và [middle, right).
 void merge(std::vector<Product>& products, std::vector<Product>& temp,
            std::size_t left, std::size_t middle, std::size_t right) {
     std::size_t i = left, j = middle, k = left;
 
     while (i < middle && j < right) {
+        // SKU bằng nhau: lấy bên trái trước để giữ thứ tự ban đầu.
         if (products[i].sku <= products[j].sku) temp[k++] = products[i++];
         else temp[k++] = products[j++];
     }
@@ -63,6 +68,7 @@ void merge_sort_by_sku(std::vector<Product>& products) {
 
 std::optional<std::size_t> binary_search_by_sku(
     const std::vector<Product>& products, const std::string& sku) {
+    // Mảng đã sắp theo SKU; chỉ tìm trong đoạn [left, right).
     std::size_t left = 0, right = products.size();
     while (left < right) {
         const std::size_t middle = left + (right - left) / 2;
@@ -92,15 +98,12 @@ std::vector<BenchmarkPoint> run_benchmark(
         if (size == 0 || size > products.size())
             throw std::invalid_argument("size phải nằm trong dữ liệu đã nạp");
 
-        const auto end = products.begin()
-            + static_cast<std::vector<Product>::difference_type>(size);
-        std::vector<Product> original(products.begin(), end);
+        std::vector<Product> original(products.begin(), products.begin() + size);
         std::vector<Product> sorted = original;
 
         const auto start = Clock::now();
         merge_sort_by_sku(sorted);
-        const double preparation_ms =
-            std::chrono::duration<double, std::milli>(Clock::now() - start).count();
+        const double preparation_ms = elapsed_ms(start);
 
         for (std::size_t i = 1; i < sorted.size(); ++i)
             if (sorted[i - 1].sku > sorted[i].sku)
@@ -122,14 +125,12 @@ std::vector<BenchmarkPoint> run_benchmark(
         auto search_start = Clock::now();
         for (const std::string& sku : queries)
             checksum += binary_search_by_sku(sorted, sku).value_or(size);
-        const double binary_ms = std::chrono::duration<double, std::milli>(
-            Clock::now() - search_start).count() / iterations;
+        const double binary_ms = elapsed_ms(search_start) / iterations;
 
         search_start = Clock::now();
         for (const std::string& sku : queries)
             checksum += linear_search_by_sku(original, sku).value_or(size);
-        const double linear_ms = std::chrono::duration<double, std::milli>(
-            Clock::now() - search_start).count() / iterations;
+        const double linear_ms = elapsed_ms(search_start) / iterations;
         benchmark_sink += checksum; // Tránh trình biên dịch bỏ phép đo.
 
         // Hai cách phải cùng tìm thấy hoặc cùng không tìm thấy từng SKU.

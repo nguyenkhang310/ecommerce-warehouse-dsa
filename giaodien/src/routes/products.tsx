@@ -98,26 +98,28 @@ function SmartSearch({ onSelect }: { onSelect: (sku: string) => void }) {
 
   const isExact = /^[A-Z]{3}-[A-Z0-9]+-[A-Z0-9]+$/i.test(debounced.trim());
 
-  const prefixQuery = useQuery({
-    queryKey: ["prefix", debounced.trim()],
-    queryFn: () => inventoryApi.searchProductsByPrefix(debounced.trim(), "auto"),
-    enabled: debounced.trim().length > 0 && !isExact,
-  });
-
   const exactQuery = useQuery({
     queryKey: ["exact", debounced.trim()],
     queryFn: () => inventoryApi.lookupProductExact(debounced.trim()),
     enabled: debounced.trim().length > 0 && isExact,
   });
 
-  const results: Product[] = isExact
+  const useExact = isExact && exactQuery.data?.product !== null;
+
+  const prefixQuery = useQuery({
+    queryKey: ["prefix", debounced.trim()],
+    queryFn: () => inventoryApi.searchProductsByPrefix(debounced.trim(), "auto"),
+    enabled: debounced.trim().length > 0 && !useExact,
+  });
+
+  const results: Product[] = useExact
     ? exactQuery.data?.product
       ? [exactQuery.data.product]
       : []
     : (prefixQuery.data?.entries ?? []);
 
-  const loading = isExact ? exactQuery.isFetching : prefixQuery.isFetching;
-  const error = isExact ? exactQuery.isError : prefixQuery.isError;
+  const loading = useExact ? exactQuery.isFetching : prefixQuery.isFetching;
+  const error = useExact ? exactQuery.isError : prefixQuery.isError;
 
   return (
     <section className="surface-card p-4" aria-label="Tìm sản phẩm">
@@ -163,7 +165,7 @@ function SmartSearch({ onSelect }: { onSelect: (sku: string) => void }) {
               ) : error ? (
                 <div className="p-3">
                   <ErrorState
-                    onRetry={() => (isExact ? exactQuery.refetch() : prefixQuery.refetch())}
+                    onRetry={() => (useExact ? exactQuery.refetch() : prefixQuery.refetch())}
                   />
                 </div>
               ) : results.length === 0 ? (
@@ -213,11 +215,11 @@ function SmartSearch({ onSelect }: { onSelect: (sku: string) => void }) {
       {defense.enabled ? (
         <div className="mt-3">
           <WhyPopover
-            structure={isExact ? "Bảng băm" : "Cây tiền tố"}
-            comparisonKey={isExact ? "băm(SKU) → ngăn" : "đường dẫn tiền tố → cây con"}
-            complexity={isExact ? "Trung bình O(1)" : "O(k + m)"}
+            structure={useExact ? "Bảng băm" : "Cây tiền tố"}
+            comparisonKey={useExact ? "băm(SKU) → ngăn" : "đường dẫn tiền tố → cây con"}
+            complexity={useExact ? "Trung bình O(1)" : "O(k + v + r + m log m)"}
             explanation={
-              isExact
+              useExact
                 ? "Tra cứu trực tiếp theo SKU trong bảng băm."
                 : "Duyệt theo từng ký tự tiền tố, không quét toàn bộ."
             }
@@ -498,6 +500,7 @@ function ProductsPage() {
     [products.data, category, status],
   );
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  useEffect(() => setPage((current) => Math.min(current, pageCount)), [pageCount]);
   const pageRows = rows.slice((page - 1) * pageSize, page * pageSize);
   const pageSkus = pageRows.map((p) => p.sku);
   const exportProducts = () => {

@@ -61,7 +61,7 @@ cho sản phẩm và đơn hàng rồi tra đúng mã. Kết quả không có tr
 Đầu vào sai ném `std::invalid_argument`; lỗi file ghi thông tin đủ để sửa đường dẫn.
 
 Chạy từ gốc repo bằng `npm run demo -- kieu_trang duong_dan/input.json`
-hoặc nhập JSON tại trang `/cpp`.
+hoặc gửi JSON đến API `/api/demo/kieu_trang`.
 Web gửi đường dẫn đến backend chạy trên cùng máy; file chọn từ trình duyệt phải gửi nội dung
 nếu sau này làm chức năng upload, không gửi một đường dẫn máy khách để server tự mở.
 

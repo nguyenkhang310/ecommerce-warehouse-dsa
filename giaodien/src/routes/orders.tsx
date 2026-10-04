@@ -465,7 +465,7 @@ function OrdersPage() {
             <div className="surface-card p-4">
               <HeapTree nodes={heap.data!.nodes.slice(0, 15)} highlight={highlight} />
               <p className="mt-3 text-xs text-muted-foreground">
-                Hiển thị 15 đơn đầu hàng đợi ({heap.data!.size} đơn). Đơn đầu tiên sẽ được xử lý tiếp
+                Hiển thị 15 nút đầu trong mảng Heap ({heap.data!.size} đơn). Nút gốc sẽ được xử lý tiếp
                 theo.
               </p>
             </div>

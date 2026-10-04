@@ -1,7 +1,7 @@
 # Bùi Nguyễn Nguyên Khang — Giải thuật, benchmark và giao diện
 
 MSSV: **24133902**. Làm trong [thuat_toan.cpp](thuat_toan.cpp) và [chay_thu.cpp](chay_thu.cpp).
-Giao diện ở `giaodien/`, kết nối HTTP ở `giaodien/src/services/giao_tiep_cpp.ts`.
+Giao diện ở `giaodien/`, kết nối HTTP ở `giaodien/src/services/api.ts`.
 Xem [quy tắc chung](../../../README.md) và [dữ liệu chính](../../data/huong_dan.md).
 Biểu đồ benchmark nhận kết quả đo trực tiếp từ dịch vụ C++.
 
@@ -74,7 +74,7 @@ npm run demo -- nguyen_khang duong_dan/input.json --release
 
 `operation` hiện hỗ trợ `search_sku`. Không truyền file thì đầu vào `{}` không đủ trường và sẽ báo lỗi.
 `--release` dùng `-O2`; ghi lại compiler, máy và chế độ build khi trình bày số liệu.
-Trang `/cpp` hiển thị JSON do executable C++ trả về, nhưng thời gian HTTP không phải benchmark.
+CLI hoặc API `/api/demo/nguyen_khang` trả JSON; thời gian HTTP không phải benchmark.
 
 Test riêng:
 

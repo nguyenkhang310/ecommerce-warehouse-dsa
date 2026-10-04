@@ -261,7 +261,7 @@ function HashTab() {
       </div>
 
       <div className="surface-card p-4">
-        <p className="mb-2 text-xs text-muted-foreground">Chỉ hiển thị 24 ngăn đầu.</p>
+        <p className="mb-2 text-xs text-muted-foreground">Hiển thị tối đa 24 ngăn, gồm ngăn của khóa đang tra cứu.</p>
         {buckets.isPending ? (
           <LoadingBlock rows={6} />
         ) : buckets.isError ? (
@@ -548,7 +548,7 @@ function TrieTab() {
         )}
         <dl className="space-y-1 text-xs">
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Độ dài tiền tố (k)</dt>
+            <dt className="text-muted-foreground">Độ dài tiền tố (k byte)</dt>
             <dd className="font-mono tnum">{snapshot.data?.prefixLength ?? 0}</dd>
           </div>
           <div className="flex justify-between">
@@ -556,11 +556,11 @@ function TrieTab() {
             <dd className="font-mono tnum">{snapshot.data?.matches ?? 0}</dd>
           </div>
         </dl>
-        <ComplexityChip>O(k + m)</ComplexityChip>
+        <ComplexityChip>O(k + v + r + m log m)</ComplexityChip>
         <DefenseExplain
           problem="Gợi ý theo tiền tố (TP2)."
           why="Đi theo từng ký tự, không quét toàn bộ."
-          complexity="O(k + m) với k là độ dài tiền tố và m là số kết quả trả về."
+          complexity="O(k + v + r + m log m): k byte tiền tố, v nút cây con, r lượt SKU tại nút kết thúc, m SKU duy nhất được sắp xếp."
         />
       </div>
     </div>

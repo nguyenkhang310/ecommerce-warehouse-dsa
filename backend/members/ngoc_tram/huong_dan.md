@@ -86,9 +86,10 @@ Sửa C++ rồi build/start lại backend khi dùng web.
 Nguồn Kaggle không có lịch sử nhập kho đã xác minh. Lấy SKU từ `backend/data/data_chinh/san_pham.csv`
 và tạo thao tác cập nhật có kiểm soát lúc demo, không biến các ngày giao dịch thành lịch sử RecentList.
 
-Khi service chung có đủ module, kiểm thử chuỗi: nạp CSV → tạo Hash/Trie → đưa đơn chờ vào Heap
-→ lấy đơn → kiểm tra tồn kho → cập nhật Hash và RecentList → xem lại dữ liệu qua API.
-Kiểm tra cả đơn thiếu hàng, SKU không có và cập nhật lặp. Ghi rõ trường hợp nào còn bị chặn bởi TODO.
+Test tích hợp hiện gọi dịch vụ thật: nạp CSV → Hash/Trie/Heap → lấy đơn ưu tiên;
+cập nhật tồn kho riêng → Hash và RecentList → xem lại dữ liệu. Kiểm tra SKU không có,
+tồn kho âm/tràn số, cập nhật lặp và yêu cầu sai không được thay đổi trạng thái.
+Theo phạm vi MC2, lấy đơn khỏi Heap không tự trừ tồn kho.
 Module và demo nằm trong thư mục `ngoc_tram`. Test riêng đặt trong thư mục con
 `ngoc_tram/kiem_thu/`, không include vào demo. Kiểm thử tích hợp dùng nhiều module
 thì đặt tại `backend/kiem_thu/` để cả nhóm cùng sửa, không để riêng trong module TP3.

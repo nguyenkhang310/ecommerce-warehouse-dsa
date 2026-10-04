@@ -47,7 +47,7 @@ Thêm thao tác xóa để demo xóa `samsung/A` rồi tìm lại chỉ còn `B`
 Trả SKU và dữ liệu mô tả cây bằng JSON nếu cần; sai đầu vào ném `std::invalid_argument`.
 
 Chạy từ gốc repo: `npm run demo -- kim_ngan`. Có thể truyền JSON bằng
-`npm run demo -- kim_ngan duong_dan/input.json` hoặc dán ở `/cpp`.
+`npm run demo -- kim_ngan duong_dan/input.json` hoặc gửi đến API `/api/demo/kim_ngan`.
 Sau khi sửa C++, build/start lại backend để web dùng bản mới.
 
 ## Lập luận Q1–Q4 cho TP2

@@ -120,6 +120,9 @@ try {
   const sku = "PRD-CMCX-R837344";
   const lookup = await app("product_lookup", { sku });
   assert.equal(lookup.product.sku, sku);
+  assert.equal(typeof lookup.trace.hashValue, "string");
+  const bucketCount = Math.round(10000 / (await app("dashboard")).dsaHealth.hashLoadFactor);
+  assert.equal(Number(BigInt(lookup.trace.hashValue) % BigInt(bucketCount)), lookup.trace.bucketIndex);
   assert.equal((await app("product_detail", { sku })).product.stock, 191);
   assert.ok((await app("product_search", { prefix: "prd-cmcx", field: "sku" })).entries.length > 0);
   assert.ok((await app("products", { category: "Home", status: "all" })).length > 0);
@@ -170,6 +173,16 @@ try {
   assert.equal((await request("/api/demo/nhat_minh", "[]")).status, 400);
   assert.equal((await request("/api/demo/khong_co", "{}")).status, 404);
   assert.equal((await request("/api/unknown")).status, 404);
+  // Sai kiểu dữ liệu phải trả 400 và không làm thay đổi trạng thái.
+  const stockBefore = (await app("product_detail", { sku })).product.stock;
+  for (const data of [{ sku, delta: 1, note: 42 }, { sku, delta: 1.5 },
+    { sku, delta: 2147483647 }, { sku, delta: 4294967297 }]) {
+    assert.equal((await request("/api/app", JSON.stringify({ action: "stock_update", data }))).status, 400);
+  }
+  assert.equal((await app("product_detail", { sku })).product.stock, stockBefore);
+  // Nhiều kết nối đồng thời: không mất cập nhật, không bị keep-alive chặn worker duy nhất.
+  await Promise.all(Array.from({ length: 6 }, () => app("stock_update", { sku, delta: 1 })));
+  assert.equal((await app("product_detail", { sku })).product.stock, stockBefore + 6);
   console.log("PASS: C++ service, 5 module routes, real data flow and error handling.");
 } finally {
   if (server.pid && server.exitCode === null) {

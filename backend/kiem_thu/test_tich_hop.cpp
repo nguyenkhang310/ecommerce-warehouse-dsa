@@ -1,302 +1,94 @@
+// Kiểm tra nghiệp vụ thật: HTTP gọi cùng WarehouseService này.
+#include "app/dich_vu.cpp"
 #include <cassert>
 #include <iostream>
-#include <string>
-#include <vector>
+#include <unordered_set>
 
-#include "../members/kieu_trang/luu_tru.cpp"
-#include "../members/kieu_trang/bang_bam.cpp"
-#include "../members/kim_ngan/cay_tien_to.cpp"
-#include "../members/nhat_minh/hang_doi_uu_tien.cpp"
-#include "../members/ngoc_tram/danh_sach_gan_day.cpp"
+int main() {
+    using Json = nlohmann::json;
+    dsa::WarehouseService service;
+    const auto run = [&](const std::string& action, const Json& data = Json::object()) {
+        return service.run(action, data);
+    };
+    const auto rejects = [&](const std::string& action, const Json& data) {
+        bool rejected = false;
+        try { run(action, data); }
+        catch (const std::invalid_argument&) { rejected = true; }
+        catch (const Json::exception&) { rejected = true; }
+        assert(rejected);
+    };
 
-using dsa::Order;
-using dsa::OrderItem;
-using dsa::Product;
-using dsa::RecentUpdate;
-using dsa::StorageData;
-
-using dsa::kieu_trang::HashTable;
-using dsa::kim_ngan::Trie;
-using dsa::ngoc_tram::RecentList;
-using dsa::nhat_minh::PriorityQueue;
-
-struct TestResult
-{
-    std::string name;
-    std::string status;
-    std::string detail;
-};
-
-std::vector<TestResult> results;
-
-void check(const std::string &name, bool ok,
-           const std::string &detail_pass, const std::string &detail_fail)
-{
-    results.push_back({name, ok ? "PASS" : "FAIL", ok ? detail_pass : detail_fail});
-}
-
-void blocked(const std::string &name, const std::string &detail)
-{
-    results.push_back({name, "BLOCKED_TODO", detail});
-}
-
-RecentUpdate make_recent_update(const Product &product, int delta)
-{
-    RecentUpdate update;
-    update.product_id = product.id;
-    update.sku = product.sku;
-    update.name = product.name;
-    update.delta = delta;
-    update.stock_after = product.stock;
-    update.updated_at = "integration-test";
-    return update;
-}
-
-Order make_single_item_order(const std::string &id, const std::string &sku, int quantity, int sequence)
-{
-    Order order;
-    order.id = id;
-    order.order_code = id;
-    order.priority = dsa::Priority::urgent;
-    order.sequence_number = sequence;
-    order.status = dsa::OrderStatus::queued;
-    OrderItem item;
-    item.sku = sku;
-    item.quantity = quantity;
-    order.items.push_back(item);
-    return order;
-}
-
-int main(int argc, char **argv)
-{
-    std::string data_dir = (argc >= 2) ? argv[1] : "backend/data/data_chinh";
-    std::cout << "INTEGRATION TEST\nData: " << data_dir << "\n\n";
-
-//IT01: Load dữ liệu CSV
-    StorageData data;
-    try
-    {
-        data = dsa::kieu_trang::load_data(data_dir);
-        check("IT01 - Load CSV",
-              !data.products.empty() && !data.orders.empty(),
-              "products=" + std::to_string(data.products.size()) +
-                  ", orders=" + std::to_string(data.orders.size()),
-              data.products.empty() ? "Không có Product" : "Không có Order");
+    assert(run("health")["productCount"] == 10000);
+    assert(run("health")["orderCount"] == 10000);
+    const std::string sku = "AUDIT-VI";
+    const Json product = {{"sku", sku}, {"name", "ĐÈN Bàn Việt"},
+                          {"category", "Test"}, {"stock", 5}, {"reorderLevel", 1}};
+    for (const Json& invalid : {Json(1.5), Json(-1), Json(4294967297LL),
+                               Json(18446744073709551615ULL), Json("5"), Json(nullptr)}) {
+        auto input = product;
+        input["stock"] = invalid;
+        rejects("product_create", input);
     }
-    catch (const std::exception &e)
-    {
-        check("IT01 - Load CSV", false, "", e.what());
-        std::cerr << "\nKhông thể tiếp tục vì CSV không load được.\n";
-        return 1;
+    assert(run("health")["productCount"] == 10000);
+    run("product_create", product);
+    rejects("product_create", product);
+    assert(run("product_lookup", {{"sku", " audit-vi "}})["product"]["stock"] == 5);
+    for (const auto* prefix : {"đèn", "ĐÈN", "đèn bàn", "bàn", "việt"}) {
+        assert(run("product_search", {{"prefix", prefix}, {"field", "name"}})["matches"] == 1);
     }
+    auto trie = run("trie", {{"prefix", "ĐÈN"}, {"field", "name"}});
+    assert(Json::parse(trie.dump())["nodes"].size() == 3); // UTF-8 phải xuất JSON hợp lệ.
+    assert(trie["nodes"][2]["isWord"] == true);
 
-//IT02: Nạp Product vào HashTable 
-    HashTable<Product> product_hash;
-    for (const Product &product : data.products)
-        product_hash.upsert(product.sku, product);
+    const auto before = run("product_detail", {{"sku", sku}});
+    rejects("stock_update", {{"sku", sku}, {"delta", 1}, {"note", 42}});
+    rejects("stock_update", {{"sku", sku}, {"delta", 2147483647}});
+    rejects("stock_update", {{"sku", sku}, {"delta", -6}});
+    rejects("stock_update", {{"sku", sku}, {"delta", 1.5}});
+    rejects("stock_update", {{"sku", sku}, {"delta", -1}, {"reason", "inbound"}});
+    assert(run("product_detail", {{"sku", sku}}) == before);
+    assert(run("recent").empty());
+    run("stock_update", {{"sku", sku}, {"delta", 2}, {"reason", "inbound"}});
+    run("stock_update", {{"sku", sku}, {"delta", -1}, {"reason", "outbound"}});
+    assert(run("recent").size() == 1);
+    assert(run("recent")[0]["stockAfter"] == 6);
+    assert(run("product_detail", {{"sku", sku}})["movements"].size() == 2);
 
-    check("IT02 - Build Hash", product_hash.size() == data.products.size(),
-          "Hash size khớp số Product", "Hash size không khớp");
-
-//IT03: Nạp Trie và tìm theo tiền tố
-    Trie trie;
-    try
-    {
-        for (const Product &product : data.products)
-        {
-            trie.insert(product.sku, product.sku);
-            if (!product.name.empty())
-                trie.insert(product.name, product.sku);
-        }
-        const Product &first_product = data.products.front();
-        std::string prefix = first_product.name.substr(0, std::min<std::size_t>(3, first_product.name.size()));
-        const auto matches = trie.search_prefix(prefix);
-
-        bool found = false;
-        for (const auto &sku : matches)
-            if (sku == first_product.sku)
-            {
-                found = true;
-                break;
-            }
-        check("IT03 - Build/Search Trie", found,
-              "Tìm prefix '" + prefix + "' thành công",
-              "Không tìm thấy SKU của Product đầu tiên");
+    const auto next = run("next_orders", {{"limit", 1}})[0];
+    const auto extracted = run("order_extract");
+    assert(extracted["orderCode"] == next["orderCode"]);
+    assert(extracted["status"] == "completed");
+    assert(run("order_lookup", {{"orderCode", next["orderCode"]}})["order"]["status"] == "completed");
+    assert(run("heap")["size"] == 9999);
+    const Json order = {{"orderCode", "AUDIT-ORDER"}, {"priority", "urgent"},
+                        {"items", Json::array({{{"sku", sku}, {"quantity", 1}}})}};
+    auto invalid_order = order;
+    invalid_order["items"][0]["quantity"] = 1.5;
+    std::uint64_t max_sequence = 0;
+    const auto heap = run("heap");
+    for (const auto& node : heap["nodes"]) {
+        max_sequence = std::max(max_sequence, node["sequenceNumber"].get<std::uint64_t>());
     }
-    catch (const std::exception &e)
-    {
-        check("IT03 - Build/Search Trie", false, "", e.what());
+    rejects("order_enqueue", invalid_order);
+    assert(run("order_enqueue", order)["sequenceNumber"] == max_sequence + 1);
+    rejects("order_enqueue", order);
+    assert(run("heap")["size"] == 10000);
+
+    for (int i = 0; i < 100; ++i) run("product_lookup", {{"sku", sku}});
+    std::unordered_set<std::string> ids;
+    for (const auto& log : run("logs")) assert(ids.insert(log["id"]).second);
+    for (const auto* action : {"recent", "next_orders", "hash"}) rejects(action, {{"limit", -1}});
+    rejects("benchmark_run", {{"operation", "hash_lookup"}, {"iterations", 1}, {"sizes", {10, -1}}});
+    assert(run("benchmark_history").empty());
+    for (const auto* operation : {"hash_lookup", "heap_extract", "trie_prefix", "initial_load"}) {
+        const auto points = run("benchmark_run", {{"operation", operation}, {"iterations", 2},
+                                                  {"sizes", {1000}}, {"warmup", true}});
+        assert(points.size() == 1 && points[0]["dsaMeanMs"].get<double>() > 0);
     }
-
-//IT04: Đẩy các order đang "queued" vào hàng đợi ưu tiên
-    PriorityQueue heap;
-    try
-    {
-        for (const Order &order : data.orders)
-            if (order.status == dsa::OrderStatus::queued)
-                heap.push(order);
-
-        check("IT04 - Push orders into Heap", !heap.empty(),
-              "queued orders=" + std::to_string(heap.size()),
-              "Không có queued order");
-    }
-    catch (const std::exception &e)
-    {
-        check("IT04 - Push orders into Heap", false, "", e.what());
-    }
-
-//IT05-IT08: Lấy 1 order ra khỏi heap và trừ tồn kho 
-    RecentList recent_list(6);
-    if (!heap.empty())
-    {
-        auto popped = heap.pop();
-        check("IT05 - Pop order", popped.has_value(),
-              popped.has_value() ? "order=" + popped->id : "", "Heap pop trả null");
-        if (popped.has_value())
-        {
-            const Order &order = popped.value();
-            bool order_has_stock = true;
-
-            for (const OrderItem &item : order.items)
-            {
-                Product *product = product_hash.find(item.sku);
-                if (product == nullptr)
-                {
-                    order_has_stock = false;
-                    check("IT06 - SKU lookup", false, "", "SKU không tồn tại: " + item.sku);
-                    continue;
-                }
-
-                if (product->stock < item.quantity)
-                {
-                    order_has_stock = false;
-                    check("IT07 - Insufficient stock", true,
-                          "SKU=" + item.sku + ", stock=" + std::to_string(product->stock) +
-                              ", quantity=" + std::to_string(item.quantity),
-                          "");
-                    continue;
-                }
-
-                product->stock -= item.quantity;
-                recent_list.touch(make_recent_update(*product, -item.quantity));
-            }
-
-            check("IT08 - Inventory update", true,
-                  order_has_stock ? "Đơn được cập nhật tồn kho"
-                                   : "Đơn có ít nhất một item không đủ điều kiện",
-                  "");
-        }
-    }
-
-//IT09: SKU không tồn tại phải được phát hiện
-    const std::string missing_sku = "SKU-DOES-NOT-EXIST";
-    if (product_hash.find(missing_sku) == nullptr)
-    {
-        PriorityQueue missing_heap;
-        missing_heap.push(make_single_item_order("TEST-MISSING-SKU", missing_sku, 1, 0));
-
-        auto popped = missing_heap.pop();
-        assert(popped.has_value());
-        assert(product_hash.find(popped->items[0].sku) == nullptr);
-
-        check("IT09 - Missing SKU", true, "SKU không tồn tại được phát hiện", "");
-    }
-    else
-    { check("IT09 - Missing SKU", false, "", "SKU giả lại tồn tại"); }
-
-//IT10: Đặt hàng vượt tồn kho thì không được trừ tồn 
-    if (!data.products.empty())
-    {
-        Product *product = product_hash.find(data.products.front().sku);
-        if (product != nullptr)
-        {
-            const int old_stock = product->stock;
-
-            PriorityQueue insufficient_heap;
-            insufficient_heap.push(make_single_item_order("TEST-INSUFFICIENT", product->sku, old_stock + 1, 1));
-
-            auto popped = insufficient_heap.pop();
-            assert(popped.has_value());
-            Product *checked = product_hash.find(popped->items[0].sku);
-            assert(checked != nullptr);
-
-            bool is_insufficient = checked->stock < popped->items[0].quantity;
-            if (is_insufficient)
-                assert(checked->stock == old_stock);
-
-            check("IT10 - Insufficient order", is_insufficient,
-                  "Không trừ tồn kho khi thiếu hàng", "Lẽ ra phải thiếu hàng");
-        }
-    }
-
-//IT11: Cập nhật lặp lại cùng 1 SKU chỉ giữ 1 node trong RecentList
-    if (!data.products.empty())
-    {
-        Product *product = product_hash.find(data.products.front().sku);
-        if (product != nullptr && product->stock >= 2)
-        {
-            const std::string sku = product->sku;
-            const int stock_before = product->stock;
-
-            product->stock -= 1;
-            recent_list.touch(make_recent_update(*product, -1));
-            product->stock -= 1;
-            recent_list.touch(make_recent_update(*product, -1));
-
-            std::size_t count = 0;
-            for (const auto &update : recent_list.snapshot())
-            {
-                if (update.sku == sku)
-                {
-                    ++count;
-                    assert(update.delta == -1);
-                    assert(update.stock_after == product->stock);
-                }
-            }
-            assert(count == 1);
-            assert(product->stock == stock_before - 2);
-
-            check("IT11 - Repeated update", true,
-                  "SKU=" + sku + " chỉ còn một RecentList node", "");
-        }
-    }
-//IT12: RecentList không được chứa SKU trùng lặp 
-    const auto recent = recent_list.snapshot();
-    bool unique = true;
-    for (std::size_t i = 0; i < recent.size() && unique; ++i)
-        for (std::size_t j = i + 1; j < recent.size(); ++j)
-            if (recent[i].sku == recent[j].sku)
-            {
-                unique = false;
-                break;
-            }
-    check("IT12 - RecentList invariant", unique,
-          "Không có SKU trùng", "RecentList chứa SKU trùng");
-
-//IT13: Chưa có API xem trạng thái kho/RecentList 
-    blocked("IT13 - Xem trạng thái qua API",
-            "may_chu.cpp hiện chưa có service trạng thái kho/RecentList; "
-            "chỉ có /api/health, /api/modules và /api/demo/{member}");
-
-    std::cout << "\nKẾT QUẢ KIỂM TRA \n";
-    int pass_count = 0, fail_count = 0, blocked_count = 0;
-    for (const auto &result : results)
-    {
-        std::cout << "[" << result.status << "] " << result.name;
-        if (!result.detail.empty())
-            std::cout << " - " << result.detail;
-        std::cout << "\n";
-
-        if (result.status == "PASS")
-            ++pass_count;
-        else if (result.status == "FAIL")
-            ++fail_count;
-        else
-            ++blocked_count;
-    }
-    std::cout << "\nĐẠT: " << pass_count
-               << "\nTHẤT BẠI: " << fail_count
-               << "\nBLOCKED_TODO: " << blocked_count << "\n";
-
-    return fail_count == 0 ? 0 : 1;
+    assert(run("benchmark_history").size() == 4);
+    run("reset");
+    assert(run("health")["productCount"] == 10000 && run("heap")["size"] == 10000);
+    assert(run("product_lookup", {{"sku", sku}})["product"].is_null());
+    assert(run("recent").empty() && run("benchmark_history").empty());
+    std::cout << "PASS: MC1, MC2/TP1, TP2, TP3, validation, benchmark và reset qua dịch vụ thật.\n";
 }

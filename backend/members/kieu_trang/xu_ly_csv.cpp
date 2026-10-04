@@ -159,10 +159,10 @@ std::uint64_t parse_uint64(
     std::size_t record,
     const std::string& field
 ) {
-    if (!value.empty() && value[0] == '-')
+    if (value.empty() || value.find_first_not_of("0123456789") != std::string::npos)
         throw std::runtime_error(
             file + " - bản ghi " + std::to_string(record)
-            + ": trường " + field + " không được âm"
+            + ": trường " + field + " phải là số nguyên không âm"
         );
 
     try {

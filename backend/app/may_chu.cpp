@@ -8,6 +8,7 @@
 #include "app/dich_vu.cpp"
 #include <array>
 #include <iostream>
+#include <mutex>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -65,7 +66,9 @@ int main(int argc, char** argv) {
 
     httplib::Server server;
     dsa::WarehouseService warehouse;
-    server.new_task_queue = [] { return new httplib::ThreadPool(1); };
+    std::mutex service_mutex;
+    // Kết nối keep-alive không được giữ độc quyền worker của cả máy chủ.
+    server.new_task_queue = [] { return new httplib::ThreadPool(8); };
     server.set_payload_max_length(2 * 1024 * 1024);
     server.set_read_timeout(5, 0);
 
@@ -73,7 +76,7 @@ int main(int argc, char** argv) {
         send(response, {200, {{"ok", true}, {"language", "C++"}, {"stage", "live"}}});
     });
 
-    server.Post("/api/app", [&warehouse](const httplib::Request& request, httplib::Response& response) {
+    server.Post("/api/app", [&warehouse, &service_mutex](const httplib::Request& request, httplib::Response& response) {
         try {
             const auto body = dsa::Json::parse(request.body, nullptr, false);
             if (body.is_discarded() || !body.is_object() || !body.contains("action")
@@ -81,7 +84,10 @@ int main(int argc, char** argv) {
                 throw std::invalid_argument("Yêu cầu phải có action");
             const auto data = body.value("data", dsa::Json::object());
             const std::string action = body["action"].get<std::string>();
+            const std::lock_guard<std::mutex> lock(service_mutex);
             send(response, {200, {{"ok", true}, {"data", warehouse.run(action, data)}}});
+        } catch (const dsa::Json::exception& error) {
+            send(response, dsa::demo_error(400, "INVALID_INPUT", error.what()));
         } catch (const std::invalid_argument& error) {
             send(response, dsa::demo_error(400, "INVALID_INPUT", error.what()));
         } catch (const std::exception& error) {
@@ -97,7 +103,8 @@ int main(int argc, char** argv) {
         send(response, {200, {{"ok", true}, {"modules", list}}});
     });
 
-    server.Post(R"(/api/demo/([a-z_]+))", [](const httplib::Request& request, httplib::Response& response) {
+    server.Post(R"(/api/demo/([a-z_]+))", [&service_mutex](const httplib::Request& request, httplib::Response& response) {
+        const std::lock_guard<std::mutex> lock(service_mutex);
         const std::string id = request.matches[1];
         for (const auto& m : dsa::modules) {
             if (id != m.id) continue;

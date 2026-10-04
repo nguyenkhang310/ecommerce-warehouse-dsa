@@ -122,7 +122,7 @@ export interface OperationLogEntry {
 
 export interface LookupTrace {
   input: string;
-  hashValue: number;
+  hashValue: string; // uint64 C++ có thể vượt độ chính xác của Number trong JavaScript.
   bucketIndex: number;
   comparisons: number;
   elapsedMs: number;

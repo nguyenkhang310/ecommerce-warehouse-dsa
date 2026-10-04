@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <utility>
 
 namespace dsa::kim_ngan {
 
@@ -24,6 +25,7 @@ public:
     void insert(const std::string& term, const std::string& sku);
     void erase(const std::string& term, const std::string& sku);
     std::vector<std::string> search_prefix(const std::string& prefix) const;
+    std::vector<std::pair<std::string, bool>> prefix_path(const std::string& prefix) const;
 
 private:
     struct Node {
@@ -51,6 +53,7 @@ void Trie::insert(const std::string& term, const std::string& sku) {
     if (term.empty() || sku.empty()) {
         throw std::invalid_argument("term và sku không được rỗng");
     }
+    if (term.size() > 512) throw std::invalid_argument("term không được dài quá 512 byte UTF-8");
 
     Node* current = root_.get();
     for (const unsigned char character : term) {
@@ -81,6 +84,24 @@ std::vector<std::string> Trie::search_prefix(const std::string& prefix) const {
     std::vector<std::string> matches(unique_skus.begin(), unique_skus.end());
     std::sort(matches.begin(), matches.end());
     return matches;
+}
+
+std::vector<std::pair<std::string, bool>> Trie::prefix_path(const std::string& prefix) const {
+    std::vector<std::pair<std::string, bool>> result;
+    const Node* current = root_.get();
+    std::string character;
+    for (std::size_t i = 0; i < prefix.size(); ++i) {
+        const auto child = current->children.find(static_cast<unsigned char>(prefix[i]));
+        if (child == current->children.end()) break;
+        current = child->second.get();
+        character += prefix[i];
+        // Trie dùng byte; giao diện gom đủ một ký tự UTF-8 trước khi xuất JSON.
+        if (i + 1 == prefix.size() || (static_cast<unsigned char>(prefix[i + 1]) & 0xc0) != 0x80) {
+            result.push_back({character, !current->skus.empty()});
+            character.clear();
+        }
+    }
+    return result;
 }
 
 bool Trie::erase_from(Node& node, const std::string& term,
