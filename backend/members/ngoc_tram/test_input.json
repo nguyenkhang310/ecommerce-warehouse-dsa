@@ -1,0 +1,1 @@
+{"capacity":3,"updates":[{"sku":"A","delta":1,"stock_after":11},{"sku":"B","delta":2,"stock_after":12},{"sku":"C","delta":3,"stock_after":13},{"sku":"B","delta":-1,"stock_after":11},{"sku":"D","delta":4,"stock_after":14}]}
