@@ -5,6 +5,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 root = Path(__file__).resolve().parents[2]
 build = root / 'backend/build/kiem_thu'
 build.mkdir(parents=True, exist_ok=True)

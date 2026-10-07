@@ -126,8 +126,8 @@ export function NextOrderCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Xử lý đơn {next.orderCode}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Lấy đơn khỏi hàng đợi ưu tiên, đánh dấu đã xử lý và đưa đơn tiếp theo lên đầu.
-              Demo này không tự trừ tồn kho; nhập/xuất kho được cập nhật tại mục Sản phẩm.
+              Kiểm tra và trừ tồn kho, đánh dấu hoàn tất rồi lấy đơn khỏi hàng đợi.
+              Nếu thiếu hàng, đơn và tồn kho được giữ nguyên để bạn bổ sung hàng rồi thử lại.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

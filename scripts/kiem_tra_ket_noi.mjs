@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { existsSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,7 +15,12 @@ await once(reservation, "listening");
 const port = reservation.address().port;
 await new Promise((done) => reservation.close(done));
 const binary = join(root, "backend/build/may_chu" + (process.platform === "win32" ? ".exe" : ""));
-const server = spawn(binary, [String(port)], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
+const testData = join(root, "backend/build/kiem_thu/ket_noi_data");
+rmSync(testData, { recursive: true, force: true });
+const server = spawn(binary, [String(port)], {
+  cwd: root, stdio: ["ignore", "pipe", "pipe"],
+  env: { ...process.env, DSA_WORK_PATH: testData },
+});
 let failure;
 server.on("error", (error) => { failure = error; });
 let logs = "";
@@ -190,4 +195,5 @@ try {
     server.kill();
     await closed;
   }
+  rmSync(testData, { recursive: true, force: true });
 }

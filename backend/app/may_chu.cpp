@@ -7,8 +7,10 @@
 #include "members/nguyen_khang/chay_thu.cpp"
 #include "app/dich_vu.cpp"
 #include <array>
+#include <cstdlib>
 #include <iostream>
 #include <mutex>
+#include <shared_mutex>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -51,6 +53,12 @@ int read_port(int argc, char** argv) {
     return port;
 }
 
+bool changes_state(const std::string& action) {
+    return action == "product_lookup" || action == "product_create"
+        || action == "stock_update" || action == "order_enqueue"
+        || action == "order_extract" || action == "reset";
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -65,8 +73,9 @@ int main(int argc, char** argv) {
     }
 
     httplib::Server server;
-    dsa::WarehouseService warehouse;
-    std::mutex service_mutex;
+    const char* work_path = std::getenv("DSA_WORK_PATH");
+    dsa::WarehouseService warehouse(true, work_path ? work_path : "backend/data/local");
+    std::shared_mutex service_mutex;
     // Kết nối keep-alive không được giữ độc quyền worker của cả máy chủ.
     server.new_task_queue = [] { return new httplib::ThreadPool(8); };
     server.set_payload_max_length(2 * 1024 * 1024);
@@ -84,8 +93,15 @@ int main(int argc, char** argv) {
                 throw std::invalid_argument("Yêu cầu phải có action");
             const auto data = body.value("data", dsa::Json::object());
             const std::string action = body["action"].get<std::string>();
-            const std::lock_guard<std::mutex> lock(service_mutex);
-            send(response, {200, {{"ok", true}, {"data", warehouse.run(action, data)}}});
+            dsa::Json result;
+            if (changes_state(action)) {
+                const std::unique_lock<std::shared_mutex> lock(service_mutex);
+                result = warehouse.run(action, data);
+            } else {
+                const std::shared_lock<std::shared_mutex> lock(service_mutex);
+                result = warehouse.run(action, data);
+            }
+            send(response, {200, {{"ok", true}, {"data", result}}});
         } catch (const dsa::Json::exception& error) {
             send(response, dsa::demo_error(400, "INVALID_INPUT", error.what()));
         } catch (const std::invalid_argument& error) {
@@ -103,8 +119,7 @@ int main(int argc, char** argv) {
         send(response, {200, {{"ok", true}, {"modules", list}}});
     });
 
-    server.Post(R"(/api/demo/([a-z_]+))", [&service_mutex](const httplib::Request& request, httplib::Response& response) {
-        const std::lock_guard<std::mutex> lock(service_mutex);
+    server.Post(R"(/api/demo/([a-z_]+))", [](const httplib::Request& request, httplib::Response& response) {
         const std::string id = request.matches[1];
         for (const auto& m : dsa::modules) {
             if (id != m.id) continue;

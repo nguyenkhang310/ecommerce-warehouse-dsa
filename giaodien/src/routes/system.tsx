@@ -56,8 +56,8 @@ function DataTab() {
           </Button>
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
-          Thay đổi chỉ lưu trong phiên chạy. Khôi phục dữ liệu hoặc khởi động lại backend sẽ
-          xóa thay đổi và nạp lại CSV gốc.
+          Sản phẩm và đơn hàng được tự lưu để dùng tiếp sau khi khởi động lại.
+          Chọn khôi phục dữ liệu sẽ xóa các thay đổi và nạp lại bộ dữ liệu gốc.
         </p>
 
         {health.isPending ? (

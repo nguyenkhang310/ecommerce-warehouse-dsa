@@ -4,6 +4,7 @@
 #include "shared/kieu_du_lieu.cpp"
 #include "xu_ly_csv.cpp"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
@@ -109,6 +110,8 @@ StorageData load_data(const std::filesystem::path& path) {
     std::size_t order_col_created = find_column(order_header, "created_at");
     std::size_t order_col_sku = find_column(order_header, "sku");
     std::size_t order_col_quantity = find_column(order_header, "quantity");
+    const auto note_column = std::find(order_header.begin(), order_header.end(), "note");
+    const std::size_t order_col_note = note_column - order_header.begin();
 
     std::size_t order_record = 1;
     std::unordered_map<std::string, std::size_t> order_positions;
@@ -175,7 +178,7 @@ StorageData load_data(const std::filesystem::path& path) {
         order.sequence_number = parse_uint64(
             row[order_col_sequence], "don_hang.csv", order_record, "sequence_number"
         );
-        order.note = "";
+        order.note = order_col_note < row.size() ? row[order_col_note] : "";
 
         const auto [position, inserted] =
             order_positions.emplace(order.id, data.orders.size());
@@ -191,7 +194,7 @@ StorageData load_data(const std::filesystem::path& path) {
                 || existing.priority != order.priority
                 || existing.sequence_number != order.sequence_number
                 || existing.status != order.status
-                || existing.created_at != order.created_at)
+                || existing.created_at != order.created_at || existing.note != order.note)
                 throw std::runtime_error(
                     "don_hang.csv - bản ghi " + std::to_string(order_record)
                     + ": cùng id nhưng khác thông tin đơn hàng"
@@ -239,7 +242,7 @@ void save_data(const std::filesystem::path& path, const StorageData& data) {
 
     ghi_csv(order_stream, {
         "id", "order_code", "priority", "sequence_number",
-        "status", "created_at", "sku", "quantity"
+        "status", "created_at", "sku", "quantity", "note"
     });
 
     for (const Order& order : data.orders) {
@@ -257,10 +260,15 @@ void save_data(const std::filesystem::path& path, const StorageData& data) {
                 status_to_string(order.status),
                 order.created_at,
                 item.sku,
-                std::to_string(item.quantity)
+                std::to_string(item.quantity),
+                order.note
             });
         }
     }
+    product_stream.close();
+    order_stream.close();
+    if (!product_stream || !order_stream)
+        throw std::runtime_error("Không ghi xong dữ liệu CSV; bản cũ chưa được thay thế");
 }
 }
 

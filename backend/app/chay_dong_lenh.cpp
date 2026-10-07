@@ -28,6 +28,5 @@ int main(int argc, char** argv) {
     const auto result = dsa::execute_demo(
         DSA_STRING(DSA_MEMBER), input, dsa::DSA_MEMBER::run_demo);
     std::cout << result.body.dump(2) << "\n";
-    // 2 = chưa cài đặt; 1 = lỗi; 0 = chạy thử thành công.
-    return result.status == 200 ? 0 : result.status == 501 ? 2 : 1;
+    return result.status == 200 ? 0 : 1;
 }

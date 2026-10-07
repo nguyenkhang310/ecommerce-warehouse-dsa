@@ -10,7 +10,7 @@
 hoàn toàn trên cấu trúc dữ liệu tự cài đặt bằng **C++17**, giao diện **React + TypeScript**
 hiển thị trực tiếp trạng thái và số đo hiệu năng từ backend.
 
-Không dùng database. CSV chỉ lưu dữ liệu gốc; mọi nghiệp vụ chạy trên Hash Table,
+Không dùng database. CSV lưu dữ liệu gốc và bản làm việc; mọi nghiệp vụ chạy trên Hash Table,
 Heap, Trie và danh sách liên kết đôi + bảng băm nằm trong bộ nhớ của tiến trình C++.
 
 ## Tính năng chính
@@ -68,7 +68,7 @@ flowchart LR
 ```text
 giaodien/ (React + TS) ── HTTP/JSON ──▶ may_chu.cpp ──▶ dich_vu.cpp ──▶ module DSA
      │                                       │                  └──▶ CSV data_chinh
-     │                                       │                      (chỉ đọc lúc nạp / nạp lại)
+     │                                       │                      (bản gốc để nạp / khôi phục)
      ├── POST /api/app      → nghiệp vụ (tra cứu, đơn, benchmark, …)
      └── POST /api/demo/:id → chạy chay_thu.cpp của từng thành viên
 ```
@@ -87,13 +87,14 @@ Quy ước quan trọng:
 * File chức năng (`.cpp` của thành viên) được `#include` vào điểm vào,
   **không biên dịch riêng** để tránh định nghĩa trùng.
 * Heap so sánh `urgent > high > normal`; cùng mức ưu tiên thì `sequence` nhỏ hơn đi trước.
-* Server nạp `data_chinh` vào 4 cấu trúc ngay khi khởi động. Thêm sản phẩm, cập nhật
-  tồn kho, xử lý đơn dùng chung một trạng thái; nút **Nạp lại dữ liệu** đọc lại CSV gốc.
-  Thay đổi chỉ tồn tại trong phiên chạy, chưa có chức năng lưu thay đổi từ web xuống CSV.
-* Theo MC2 trong Plan, xử lý đơn là lấy khỏi Heap và đánh dấu đã xử lý trong demo;
-  không tự động xuất kho. Nhập/xuất tồn kho là thao tác riêng tại màn hình Sản phẩm.
-* Tìm tên theo tiền tố cả tên hoặc từng từ; hỗ trợ hoa/thường ASCII và chữ Việt dựng sẵn
-  (NFC). Không bỏ dấu hoặc tự chuẩn hóa chữ Unicode dạng dấu tách (NFD).
+* Lần chạy đầu, server nạp `data_chinh` vào 4 cấu trúc. Sau mỗi thay đổi, dữ liệu làm việc
+  được lưu tại `backend/data/local`; lần chạy sau tự nạp lại bản này. Nút **Nạp lại dữ liệu**
+  khôi phục dữ liệu gốc rồi cập nhật lại bản làm việc. Thư mục `local` không được đưa lên Git.
+* Khi xử lý đơn, hệ thống kiểm tra đủ tồn kho cho toàn bộ SKU trước khi thay đổi. Nếu đủ,
+  hệ thống trừ kho, ghi biến động, cập nhật RecentList, đánh dấu hoàn tất và lấy đơn khỏi Heap.
+  Nếu thiếu, toàn bộ thao tác bị từ chối và trạng thái cũ được giữ nguyên.
+* Tìm tên theo tiền tố cả tên hoặc từng từ; không phân biệt hoa/thường, có dấu/không dấu
+  và xử lý được chữ Việt dạng dựng sẵn NFC lẫn dạng dấu tách NFD.
 * Benchmark đo trong C++ bằng `steady_clock`, có chạy khởi động (warmup), lặp nhiều lần
   lấy trung bình, cộng dồn checksum để trình biên dịch không loại bỏ phép đo.
   HTTP/JSON/render không tính vào thời gian DSA.

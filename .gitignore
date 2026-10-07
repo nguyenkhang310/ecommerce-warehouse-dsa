@@ -4,7 +4,10 @@
 backend/thu_vien/
 backend/build/
 backend/data/local/
+backend/data/local_moi/
+backend/data/local_cu/
 backend/data/goc/
 backend/data/day_du/
 node_modules/
 *.log
+ma_nguon_nop_bai.zip

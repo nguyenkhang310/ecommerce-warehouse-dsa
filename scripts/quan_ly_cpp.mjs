@@ -99,13 +99,11 @@ function stopProcess(child) {
 }
 
 async function runProject() {
-  const executable = join(build, "may_chu" + suffix);
-  await compile(undefined, true);
-
   let backendProcess;
   if (!(await backendReady())) {
+    const executable = await compile(undefined, true);
     console.log("Đang nạp 10.000 sản phẩm và 10.000 đơn hàng vào C++...");
-    backendProcess = spawn(executable, ["8080"], { cwd: root, stdio: "inherit", shell: process.platform === "win32" });
+    backendProcess = spawn(executable, ["8080"], { cwd: root, stdio: "inherit" });
     let ready = false;
     for (let attempt = 0; attempt < 240 && !ready; attempt++) {
       ready = await backendReady();

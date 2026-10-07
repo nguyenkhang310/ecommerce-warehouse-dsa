@@ -15,7 +15,6 @@ namespace dsa::nguyen_khang {
 namespace {
 
 using Clock = std::chrono::steady_clock;
-volatile std::size_t benchmark_sink = 0;
 
 double elapsed_ms(Clock::time_point start) {
     return std::chrono::duration<double, std::milli>(Clock::now() - start).count();
@@ -89,6 +88,7 @@ std::optional<std::size_t> linear_search_by_sku(
 std::vector<BenchmarkPoint> run_benchmark(
     const std::string& operation, const std::vector<Product>& products,
     const std::vector<std::size_t>& sizes, std::size_t iterations, bool warmup) {
+    volatile std::size_t benchmark_sink = 0;
     if (operation != "search_sku") throw std::invalid_argument("operation hiện hỗ trợ: search_sku");
     if (iterations == 0) throw std::invalid_argument("iterations phải lớn hơn 0");
     if (sizes.empty()) throw std::invalid_argument("sizes không được rỗng");

@@ -40,6 +40,7 @@ int main() {
         order.sequence_number = 7;
         order.status = OrderStatus::queued;
         order.created_at = "2026-01-03";
+        order.note = "Giao sớm, gọi trước\nGhi chú: \"dễ vỡ\"";
         order.items.push_back(OrderItem{"P1", "SKU-1", "", 2});
         order.items.push_back(OrderItem{"P1", "SKU-1", "", 1});
         input.orders.push_back(order);
@@ -52,6 +53,7 @@ int main() {
         require(output.orders.size() == 1 && output.orders[0].items.size() == 2,
                 "Đọc lại đơn nhiều sản phẩm không đúng");
         require(output.orders[0].sequence_number == 7, "Không giữ sequence_number");
+        require(output.orders[0].note == order.note, "Mất ghi chú sau khi lưu CSV");
 
         std::filesystem::remove_all(folder);
         std::cout << "ĐẠT: Hash Table và đọc/ghi CSV\n";
