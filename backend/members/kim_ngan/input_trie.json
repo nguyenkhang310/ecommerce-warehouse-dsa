@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {"term": "samsung", "sku": "A"},
+    {"term": "sandisk", "sku": "B"},
+    {"term": "sony", "sku": "C"}
+  ],
+  "prefix": "sa",
+  "erase": {
+    "term": "samsung",
+    "sku": "A"
+  }
+}
