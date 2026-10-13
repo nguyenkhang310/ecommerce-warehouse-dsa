@@ -1,4 +1,4 @@
-import type { Priority, StockStatus } from "@/core/types";
+import type { BenchmarkPoint, Priority, StockStatus } from "@/core/types";
 
 const nf = new Intl.NumberFormat("vi-VN");
 
@@ -56,9 +56,35 @@ export const statusLabel: Record<StockStatus, string> = {
   out_of_stock: "Hết hàng",
 };
 
-export const operationLabel: Record<string, string> = {
-  hash_lookup: "Tra cứu theo mã",
-  heap_extract: "Lấy đơn ưu tiên",
-  trie_prefix: "Tìm theo tiền tố",
-  initial_load: "Sắp xếp Merge Sort",
+export const operationLabel: Record<BenchmarkPoint["operation"], string> = {
+  hash_lookup: "Tra cứu SKU bằng bảng băm",
+  heap_extract: "Lấy đơn tiếp theo bằng Heap",
+  trie_prefix: "Tìm tiền tố bằng Trie",
+  initial_load: "Sắp xếp SKU bằng Merge Sort",
+};
+
+export const benchmarkInfo: Record<
+  BenchmarkPoint["operation"],
+  { dsa: string; baseline: string; description: string }
+> = {
+  hash_lookup: {
+    dsa: "Bảng băm",
+    baseline: "Duyệt lần lượt từng sản phẩm",
+    description: "Tìm một sản phẩm theo mã SKU.",
+  },
+  heap_extract: {
+    dsa: "Heap ưu tiên",
+    baseline: "Duyệt toàn bộ danh sách đơn",
+    description: "Lấy đơn hàng cần được xử lý tiếp theo.",
+  },
+  trie_prefix: {
+    dsa: "Trie",
+    baseline: "Duyệt lần lượt từng sản phẩm",
+    description: "Tìm các sản phẩm có mã bắt đầu bằng cùng một tiền tố.",
+  },
+  initial_load: {
+    dsa: "Merge Sort",
+    baseline: "Hàm sắp xếp có sẵn",
+    description: "Sắp xếp danh sách sản phẩm tăng dần theo mã SKU.",
+  },
 };

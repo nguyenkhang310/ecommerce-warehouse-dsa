@@ -38,7 +38,7 @@ import { EmptyState, ErrorState, LoadingBlock } from "@/components/common/states
 import { WhyPopover } from "@/components/common/WhyPopover";
 import { useDefenseMode } from "@/context/defense-mode";
 import { benchmarkApi, inventoryApi } from "@/services/api";
-import { formatNumber, relativeTime } from "@/lib/format";
+import { benchmarkInfo, formatNumber, operationLabel, relativeTime } from "@/lib/format";
 import type { BenchmarkPoint } from "@/core/types";
 
 export const Route = createFileRoute("/")({
@@ -102,6 +102,7 @@ function DashboardPage() {
   const navigate = useNavigate();
   const defense = useDefenseMode();
   const [operation, setOperation] = useState<BenchmarkPoint["operation"]>("hash_lookup");
+  const info = benchmarkInfo[operation];
 
   const summary = useQuery({
     queryKey: ["dashboard"],
@@ -262,22 +263,25 @@ function DashboardPage() {
           <section className="surface-card p-4" aria-labelledby="quick-chart-title">
             <div className="flex flex-col items-stretch gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
               <h2 id="quick-chart-title" className="text-base font-semibold">
-                So sánh hiệu năng
+                So sánh thời gian chạy
               </h2>
               <Select
                 value={operation}
                 onValueChange={(v) => setOperation(v as BenchmarkPoint["operation"])}
               >
-                <SelectTrigger className="w-full sm:w-[210px]" aria-label="Chọn phép đo">
+                <SelectTrigger className="w-full sm:w-[250px]" aria-label="Chức năng cần đo">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="hash_lookup">Tra cứu theo mã</SelectItem>
-                  <SelectItem value="heap_extract">Lấy đơn ưu tiên</SelectItem>
-                  <SelectItem value="trie_prefix">Tìm theo tiền tố</SelectItem>
+                  {Object.entries(operationLabel).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              {info.description} Thời gian càng nhỏ thì chạy càng nhanh; ms là mili giây.
+            </p>
             {bench.isPending ? (
               <LoadingBlock rows={3} className="mt-4" />
             ) : bench.isError ? (
@@ -314,7 +318,7 @@ function DashboardPage() {
                       />
                       <Legend wrapperStyle={{ fontSize: 12 }} />
                       <Line
-                        name="Giải pháp DSA"
+                        name={info.dsa}
                         type="monotone"
                         dataKey="dsa"
                         stroke="var(--color-primary)"
@@ -322,7 +326,7 @@ function DashboardPage() {
                         dot
                       />
                       <Line
-                        name="Duyệt tuyến tính"
+                        name={info.baseline}
                         type="monotone"
                         dataKey="linear"
                         stroke="var(--color-destructive)"
@@ -337,7 +341,7 @@ function DashboardPage() {
                   to="/performance"
                   className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
                 >
-                  Mở trang đánh giá hiệu năng
+                  Mở trang so sánh thời gian chạy
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
               </>

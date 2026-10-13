@@ -38,15 +38,24 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ErrorState, LoadingBlock } from "@/components/common/states";
 import { benchmarkApi } from "@/services/api";
-import { formatDateTime, formatNumber, operationLabel } from "@/lib/format";
+import { benchmarkInfo, formatDateTime, formatNumber, operationLabel } from "@/lib/format";
 import type { BenchmarkPoint } from "@/core/types";
 
 export const Route = createFileRoute("/performance")({
-  head: () => ({ meta: [{ title: "Đánh giá hiệu năng — Quản lý kho" }] }),
+  head: () => ({ meta: [{ title: "So sánh thời gian chạy — Quản lý kho" }] }),
   component: PerformancePage,
 });
 
 const SIZES = [1000, 5000, 10000];
+
+function comparisonText(dsaMs: number, baselineMs: number) {
+  if (dsaMs <= 0 || baselineMs <= 0) return "Chưa có dữ liệu";
+  const ratio = baselineMs / dsaMs;
+  if (ratio >= 0.95 && ratio <= 1.05) return "Tốc độ gần bằng nhau";
+  return ratio > 1
+    ? `Nhanh hơn ${ratio.toFixed(1)} lần`
+    : `Chậm hơn ${(1 / ratio).toFixed(1)} lần`;
+}
 
 function PerformancePage() {
   const qc = useQueryClient();
@@ -113,7 +122,7 @@ function PerformancePage() {
     .sort((a, b) => a.size - b.size);
 
   const focus = chartData.find((r) => r.size === focusSize) ?? chartData[chartData.length - 1];
-  const speedup = focus ? focus.linear / focus.dsa : 0;
+  const info = benchmarkInfo[operation];
   const exportResults = async (format: "csv" | "json") => {
     try {
       await benchmarkApi.export(format);
@@ -126,7 +135,7 @@ function PerformancePage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Đánh giá hiệu năng"
+        title="So sánh thời gian chạy"
         actions={
           <Button
             onClick={() => run.mutate()}
@@ -134,7 +143,7 @@ function PerformancePage() {
             className="gap-1.5"
           >
             <Play className="h-4 w-4" aria-hidden />
-            {run.isPending ? "Đang đo…" : "Bắt đầu đo"}
+            {run.isPending ? "Đang đo…" : "Chạy đo"}
           </Button>
         }
       />
@@ -142,7 +151,7 @@ function PerformancePage() {
       <section className="surface-card p-4" aria-label="Cấu hình đo hiệu năng">
         <div className="grid gap-4 lg:grid-cols-4">
           <div className="space-y-1.5">
-            <Label htmlFor="bench-op">Phép đo</Label>
+            <Label htmlFor="bench-op">Chức năng cần đo</Label>
             <Select
               value={operation}
               onValueChange={(v) => setOperation(v as BenchmarkPoint["operation"])}
@@ -151,15 +160,14 @@ function PerformancePage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="hash_lookup">Tra cứu theo mã</SelectItem>
-                <SelectItem value="heap_extract">Lấy đơn ưu tiên</SelectItem>
-                <SelectItem value="trie_prefix">Tìm theo tiền tố</SelectItem>
-                <SelectItem value="initial_load">Sắp xếp Merge Sort</SelectItem>
+                {Object.entries(operationLabel).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Kích thước tập dữ liệu</Label>
+            <Label>Số bản ghi dùng để đo</Label>
             <div className="flex flex-wrap gap-3 pt-2">
               {SIZES.map((s) => (
                 <label key={s} className="flex items-center gap-1.5 text-sm">
@@ -172,7 +180,7 @@ function PerformancePage() {
                     }
                     aria-label={`Kích thước ${s}`}
                   />
-                  {s / 1000}K
+                  {formatNumber(s)}
                 </label>
               ))}
             </div>
@@ -197,7 +205,7 @@ function PerformancePage() {
             <Label>Tùy chọn</Label>
             <label className="flex items-center gap-2 pt-2 text-sm">
               <Checkbox checked={warmup} onCheckedChange={(v) => setWarmup(Boolean(v))} />
-              Chạy khởi động để ổn định kết quả
+              Chạy thử 1 lần trước khi đo (nên bật)
             </label>
           </div>
         </div>
@@ -205,6 +213,13 @@ function PerformancePage() {
         {sizes.length === 0 ? (
           <p className="mt-3 text-xs text-destructive">Chọn ít nhất một kích thước dữ liệu.</p>
         ) : null}
+
+        <p className="mt-3 text-sm text-muted-foreground">
+          {info.description} So sánh <span className="font-medium text-foreground">{info.dsa}</span>
+          {" với "}
+          <span className="font-medium text-foreground">{info.baseline}</span>. Thời gian càng nhỏ
+          thì chạy càng nhanh. Kết quả là thời gian trung bình của các lần chạy; ms là mili giây.
+        </p>
 
         {run.isPending || progress > 0 ? (
           <div className="mt-4 flex items-center gap-3">
@@ -238,19 +253,19 @@ function PerformancePage() {
           <div className="grid gap-4 sm:grid-cols-3">
             {[
               {
-                label: "Giải pháp DSA (trung bình)",
+                label: "Thuật toán (trung bình)",
                 value: `${focus?.dsa.toFixed(4) ?? "—"} ms`,
-                hint: `Với ${formatNumber(focus?.size ?? 0)} bản ghi`,
+                hint: info.dsa,
               },
               {
-                label: "Duyệt tuyến tính (trung bình)",
+                label: "Cách đối chiếu (trung bình)",
                 value: `${focus?.linear.toFixed(4) ?? "—"} ms`,
-                hint: "Cùng tập dữ liệu",
+                hint: info.baseline,
               },
               {
-                label: "Nhanh hơn",
-                value: `${speedup.toFixed(1)}x`,
-                hint: "So với duyệt tuyến tính",
+                label: "Kết quả so sánh",
+                value: focus ? comparisonText(focus.dsa, focus.linear) : "—",
+                hint: `Trên ${formatNumber(focus?.size ?? 0)} bản ghi`,
               },
             ].map((c) => (
               <article key={c.label} className="surface-card p-4">
@@ -266,7 +281,7 @@ function PerformancePage() {
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                 <h2 className="truncate text-base font-semibold">{operationLabel[operation]}</h2>
                 <Button variant="outline" size="sm" onClick={() => setLogScale((v) => !v)}>
-                  Thang đo: {logScale ? "logarit" : "tuyến tính"}
+                  Kiểu trục: {logScale ? "logarit" : "thông thường"}
                 </Button>
               </div>
               <div className="mt-4 h-[300px]">
@@ -295,7 +310,7 @@ function PerformancePage() {
                     />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
                     <Line
-                      name="Giải pháp DSA"
+                      name={info.dsa}
                       type="monotone"
                       dataKey="dsa"
                       stroke="var(--color-primary)"
@@ -303,7 +318,7 @@ function PerformancePage() {
                       dot
                     />
                     <Line
-                      name="Duyệt tuyến tính"
+                      name={info.baseline}
                       type="monotone"
                       dataKey="linear"
                       stroke="var(--color-destructive)"
@@ -318,7 +333,7 @@ function PerformancePage() {
 
             <section className="surface-card p-5">
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-                <h2 className="truncate text-base font-semibold">So sánh tại một điểm dữ liệu</h2>
+                <h2 className="truncate text-base font-semibold">So sánh ở một số lượng bản ghi</h2>
                 <Select value={String(focusSize)} onValueChange={(v) => setFocusSize(Number(v))}>
                   <SelectTrigger className="w-[120px]" aria-label="Chọn điểm dữ liệu">
                     <SelectValue />
@@ -326,7 +341,7 @@ function PerformancePage() {
                   <SelectContent>
                     {SIZES.map((s) => (
                       <SelectItem key={s} value={String(s)}>
-                        {s / 1000}K
+                        {formatNumber(s)} bản ghi
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -358,13 +373,13 @@ function PerformancePage() {
                     />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
                     <Bar
-                      name="Giải pháp DSA"
+                      name={info.dsa}
                       dataKey="dsa"
                       fill="var(--color-primary)"
                       radius={[6, 6, 0, 0]}
                     />
                     <Bar
-                      name="Duyệt tuyến tính"
+                      name={info.baseline}
                       dataKey="linear"
                       fill="var(--color-chart-5)"
                       radius={[6, 6, 0, 0]}
@@ -409,6 +424,9 @@ function PerformancePage() {
                     {formatDateTime(b.measuredAt)}
                   </p>
                   <p className="text-sm font-medium leading-snug">{operationLabel[b.operation]}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Đối chiếu: {benchmarkInfo[b.operation].baseline}
+                  </p>
                   <dl className="grid grid-cols-2 gap-3 text-xs">
                     <div>
                       <dt className="text-muted-foreground">Số bản ghi</dt>
@@ -419,15 +437,15 @@ function PerformancePage() {
                       <dd className="mt-0.5 font-medium tnum">{formatNumber(b.iterations)}</dd>
                     </div>
                     <div>
-                      <dt className="text-muted-foreground">Trung bình DSA / tuyến tính</dt>
+                      <dt className="text-muted-foreground">Thuật toán / đối chiếu</dt>
                       <dd className="mt-0.5 font-medium tnum">
                         {b.dsaMeanMs} / {b.baselineMeanMs} ms
                       </dd>
                     </div>
                     <div className="text-right">
-                      <dt className="text-muted-foreground">Nhanh hơn</dt>
+                      <dt className="text-muted-foreground">Kết quả</dt>
                       <dd className="mt-0.5 font-semibold text-primary tnum">
-                        {(b.baselineMeanMs / b.dsaMeanMs).toFixed(1)}x
+                        {comparisonText(b.dsaMeanMs, b.baselineMeanMs)}
                       </dd>
                     </div>
                   </dl>
@@ -443,9 +461,9 @@ function PerformancePage() {
                     <TableHead>Phép đo</TableHead>
                     <TableHead className="text-right">Số bản ghi</TableHead>
                     <TableHead className="text-right">Số lần lặp</TableHead>
-                    <TableHead className="text-right">Trung bình DSA (ms)</TableHead>
-                    <TableHead className="text-right">Trung bình tuyến tính (ms)</TableHead>
-                    <TableHead className="text-right">Nhanh hơn</TableHead>
+                    <TableHead className="text-right">Thuật toán (ms)</TableHead>
+                    <TableHead className="text-right">Cách đối chiếu (ms)</TableHead>
+                    <TableHead className="text-right">Kết quả</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -454,7 +472,12 @@ function PerformancePage() {
                       <TableCell className="text-xs text-muted-foreground tnum">
                         {formatDateTime(b.measuredAt)}
                       </TableCell>
-                      <TableCell className="text-xs">{operationLabel[b.operation]}</TableCell>
+                      <TableCell className="text-xs">
+                        <p>{operationLabel[b.operation]}</p>
+                        <p className="text-muted-foreground">
+                          Đối chiếu: {benchmarkInfo[b.operation].baseline}
+                        </p>
+                      </TableCell>
                       <TableCell className="text-right tnum">
                         {formatNumber(b.datasetSize)}
                       </TableCell>
@@ -464,7 +487,7 @@ function PerformancePage() {
                       <TableCell className="text-right tnum">{b.dsaMeanMs}</TableCell>
                       <TableCell className="text-right tnum">{b.baselineMeanMs}</TableCell>
                       <TableCell className="text-right font-semibold tnum">
-                        {(b.baselineMeanMs / b.dsaMeanMs).toFixed(1)}x
+                        {comparisonText(b.dsaMeanMs, b.baselineMeanMs)}
                       </TableCell>
                     </TableRow>
                   ))}
