@@ -68,8 +68,10 @@ Khi đo Heap/Trie/RecentList, dùng module thật của các thành viên và c�
 Đọc tham số, nạp dữ liệu, kiểm tra tính đúng của tìm kiếm, đo và trả các điểm benchmark.
 Sai đầu vào ném `std::invalid_argument`. Khi nhóm đã cài parsing, chạy từ gốc repo:
 
+File cấu hình mẫu đã có tại `cau_hinh_demo.json`. Chạy từ thư mục gốc repo:
+
 ```powershell
-npm run demo -- nguyen_khang duong_dan/input.json --release
+npm run demo -- nguyen_khang backend/members/nguyen_khang/cau_hinh_demo.json --release
 ```
 
 `operation` hiện hỗ trợ `search_sku`. Không truyền file thì đầu vào `{}` không đủ trường và sẽ báo lỗi.

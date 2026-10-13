@@ -1,6 +1,17 @@
 {
   "configurations": [
     {
+      "name": "windows-gcc-x64",
+      "includePath": [
+        "${workspaceFolder}/backend",
+        "${workspaceFolder}/backend/thu_vien"
+      ],
+      "compilerPath": "C:/msys64/mingw64/bin/g++.exe",
+      "cStandard": "c17",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "windows-gcc-x64"
+    },
+    {
       "name": "macOS-clang-arm64",
       "includePath": [
         "${workspaceFolder}/backend",
@@ -10,17 +21,6 @@
       "cStandard": "c17",
       "cppStandard": "c++17",
       "intelliSenseMode": "macos-clang-arm64"
-    },
-    {
-      "name": "windows-gcc-x64",
-      "includePath": [
-        "${workspaceFolder}/backend",
-        "${workspaceFolder}/backend/thu_vien"
-      ],
-      "compilerPath": "C:/mingw64/bin/g++.exe",
-      "cStandard": "c17",
-      "cppStandard": "c++17",
-      "intelliSenseMode": "windows-gcc-x64"
     }
   ],
   "version": 4

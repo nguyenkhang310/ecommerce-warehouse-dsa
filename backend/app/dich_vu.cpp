@@ -747,7 +747,7 @@ Json WarehouseService::recent_snapshot() const {
 }
 
 Json WarehouseService::run_benchmarks(const Json& input) {
-    volatile std::size_t benchmark_sink = 0;
+    [[maybe_unused]] volatile std::size_t benchmark_sink = 0;
     const std::lock_guard<std::mutex> benchmark_lock(benchmark_mutex_);
     const std::string operation = input.value("operation", "");
     const int iterations = integer_field(input, "iterations", 1, 1000);

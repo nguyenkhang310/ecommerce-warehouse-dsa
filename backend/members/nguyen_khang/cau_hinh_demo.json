@@ -1,0 +1,7 @@
+{
+  "data_dir": "backend/data/data_chinh",
+  "operation": "search_sku",
+  "sizes": [1000, 10000],
+  "iterations": 100,
+  "warmup": true
+}
